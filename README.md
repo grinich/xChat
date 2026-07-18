@@ -5,12 +5,17 @@
 </p>
 
 A fast, full-screen, **keyboard-first layer on top of X (Twitter) Direct Messages** — inspired
-by Superhuman and the `inflow` LinkedIn client. xChat is an in-page Chrome extension: it never
-touches X's API or crypto. X does all the fetching, decryption, realtime, and sending; xChat
-adds a full-screen reskin, keyboard navigation (`j`/`k`), a command palette (`⌘K`), a
-quick-switcher (`⌘J`), quick search, reply-on-`r`, and a toolbar button that jumps straight to
-your DMs. Because it rides X's own client, **every conversation works — including
-end-to-end-encrypted XChat threads.**
+by Superhuman and the [Inflow](https://github.com/grinich/inflow) LinkedIn client.
+
+- **In-page Chrome extension** — it never touches X's API or crypto. X does all the fetching,
+  decryption, realtime, and sending.
+- **Full-screen reskin** of X's DM interface.
+- **Keyboard navigation** — `j`/`k` to move between conversations, reply-on-`r`.
+- **Command palette** (`⌘K`) and **quick-switcher** (`⌘J`).
+- **Quick search** across your conversations.
+- **Toolbar button** that jumps straight to your DMs.
+- Because it rides X's own client, **every conversation works — including
+  end-to-end-encrypted XChat threads.**
 
 Everything maps to real X DM functionality — nothing is faked. X DMs have no archive / star /
 snooze, so xChat doesn't pretend to.
