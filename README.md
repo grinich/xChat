@@ -15,7 +15,8 @@ end-to-end-encrypted XChat threads.**
 Everything maps to real X DM functionality — nothing is faked. X DMs have no archive / star /
 snooze, so xChat doesn't pretend to.
 
-See [PLAN.md](./PLAN.md) for the architecture and the reverse-engineering findings behind it.
+> Unofficial and not affiliated with, endorsed by, or sponsored by X Corp. "X" and "Twitter"
+> are trademarks of their respective owners.
 
 ## Develop
 

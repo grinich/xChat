@@ -18,7 +18,7 @@ import { installComposerFocusGuard } from './composer-focus';
 const LOG = '[xchat]';
 const FULLSCREEN_CLASS = 'xchat-fullscreen';
 
-let wired = false; // one-time listeners (keyboard, observer, triage)
+let wired = false; // one-time listeners (keyboard, observer, click sync, composer guard)
 let active = false; // currently activated on a DM route with the UI present
 
 function wireOnce(): void {

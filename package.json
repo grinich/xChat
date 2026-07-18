@@ -3,6 +3,11 @@
   "description": "Keyboard-first, full-screen enhancer for X (Twitter) DMs",
   "private": true,
   "version": "0.0.2",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grinich/xChat.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "wxt",
