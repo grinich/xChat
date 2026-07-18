@@ -2,5 +2,5 @@
 // worker only exists for lifecycle/logging and future cross-tab concerns. Triage flags
 // are read/written directly from the content script via chrome.storage.local.
 export default defineBackground(() => {
-  console.info('[tchat] background ready');
+  console.info('[xchat] background ready');
 });

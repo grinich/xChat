@@ -1,11 +1,11 @@
-# tchat — notes for Claude
+# xChat — notes for Claude
 
 **What this is:** an in-page Chrome MV3 extension (WXT + TypeScript) that enhances X (Twitter)
 DMs with a full-screen reskin + keyboard-first UX. It is NOT an API client. See `PLAN.md` for
 the full architecture and the reverse-engineering findings that justify it.
 
 ## Core principle
-X does all data/network/crypto/realtime/sending. tchat only **reads the rendered DOM** and
+X does all data/network/crypto/realtime/sending. xChat only **reads the rendered DOM** and
 **drives X's own controls**. This is the only way to support end-to-end-encrypted XChat threads
 (keys are device-bound and off the main thread). Never add API calls, cookie handling, or
 attempts to decrypt — those were investigated and ruled out (see PLAN.md §7).

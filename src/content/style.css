@@ -1,39 +1,39 @@
 /*
- * tchat — full-screen reskin of X (Twitter) DMs, inflow-style.
+ * xchat — full-screen reskin of X (Twitter) DMs, inflow-style.
  * Injected via the manifest so rules auto-apply to X's React re-renders (no JS re-apply).
  * Every selector is anchored to data-testid / role — never hashed class names.
  * The verified base (nav hidden, panes fill viewport, thread widened) comes from live testing.
  */
 
 :root {
-  --tchat-accent: #1d9bf0;
-  --tchat-sel-light: rgba(29, 155, 240, 0.10);
-  --tchat-sel-dark: rgba(29, 155, 240, 0.16);
-  --tchat-sidebar-w: 360px;
+  --xchat-accent: #1d9bf0;
+  --xchat-sel-light: rgba(29, 155, 240, 0.10);
+  --xchat-sel-dark: rgba(29, 155, 240, 0.16);
+  --xchat-sidebar-w: 360px;
 }
 
 /* ---- Full-screen: drop X's global nav rail + right column, reclaim all width ---- */
-html.tchat-fullscreen header[role='banner'] { display: none !important; }
-html.tchat-fullscreen [data-testid='sidebarColumn'] { display: none !important; }
-html.tchat-fullscreen main[role='main'] { width: 100vw !important; }
-html.tchat-fullscreen main[role='main'] > div { width: 100% !important; }
-html.tchat-fullscreen [data-testid='primaryColumn'] {
+html.xchat-fullscreen header[role='banner'] { display: none !important; }
+html.xchat-fullscreen [data-testid='sidebarColumn'] { display: none !important; }
+html.xchat-fullscreen main[role='main'] { width: 100vw !important; }
+html.xchat-fullscreen main[role='main'] > div { width: 100% !important; }
+html.xchat-fullscreen [data-testid='primaryColumn'] {
   max-width: none !important;
   width: 100% !important;
 }
-html.tchat-fullscreen [data-testid='primaryColumn'] > div {
+html.xchat-fullscreen [data-testid='primaryColumn'] > div {
   max-width: none !important;
   width: 100% !important;
 }
 
 /* ---- Two-pane split fills the viewport ---- */
-html.tchat-fullscreen [data-testid='dm-container'] { width: 100% !important; }
-html.tchat-fullscreen [data-testid='dm-inbox-panel'] {
-  flex: 0 0 var(--tchat-sidebar-w) !important;
-  width: var(--tchat-sidebar-w) !important;
-  max-width: var(--tchat-sidebar-w) !important;
+html.xchat-fullscreen [data-testid='dm-container'] { width: 100% !important; }
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] {
+  flex: 0 0 var(--xchat-sidebar-w) !important;
+  width: var(--xchat-sidebar-w) !important;
+  max-width: var(--xchat-sidebar-w) !important;
 }
-html.tchat-fullscreen [data-testid='dm-conversation-panel'] {
+html.xchat-fullscreen [data-testid='dm-conversation-panel'] {
   flex: 1 1 auto !important;
   width: auto !important;
   max-width: none !important;
@@ -45,27 +45,27 @@ html.tchat-fullscreen [data-testid='dm-conversation-panel'] {
  * conversation item — if X renames them, rows simply fall back to full height (not broken).
  * Because this CSS ships in the manifest (present before X measures rows), the virtualizer
  * sizes the row slots compact from the start. */
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] a {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] a {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .py-3 {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .py-3 {
   padding-top: 4px !important;
   padding-bottom: 4px !important;
 }
 /* Tighten the vertical gap between the name line and the message preview. */
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .flex-col.gap-1 {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .flex-col.gap-1 {
   gap: 1px !important;
 }
 /* Avatar: lock to a 40px SQUARE and make the image fully cover it.
  * X's avatar container has 2px padding + a grey placeholder background, which left the image
  * at 40x36 and showed a grey band top/bottom — so we zero the padding, drop the placeholder
  * bg, and force the child image to fill 40x40 (object-fit: cover keeps it undistorted). */
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .rounded-full {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .rounded-full {
   width: 40px !important;
   height: 40px !important;
   min-width: 40px !important;
@@ -78,7 +78,7 @@ html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .rounded-full {
   align-items: stretch !important;
   background: transparent !important;
 }
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .rounded-full > * {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .rounded-full > * {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
@@ -91,13 +91,13 @@ html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .rounded-full > * {
  * a focus log). Suppress the outline across the whole inbox panel — including :focus-within,
  * and including the <li> slots. NOTE: outline only, not box-shadow — we use a box-shadow for
  * the row dividers below, and killing box-shadow here would make dividers flicker on focus. */
-html.tchat-fullscreen [data-testid='dm-inbox-panel'],
-html.tchat-fullscreen [data-testid='dm-inbox-panel']:focus,
-html.tchat-fullscreen [data-testid='dm-inbox-panel']:focus-visible,
-html.tchat-fullscreen [data-testid='dm-inbox-panel']:focus-within,
-html.tchat-fullscreen [data-testid='dm-inbox-panel'] *:focus,
-html.tchat-fullscreen [data-testid='dm-inbox-panel'] *:focus-visible,
-html.tchat-fullscreen [data-testid='dm-inbox-panel'] *:focus-within {
+html.xchat-fullscreen [data-testid='dm-inbox-panel'],
+html.xchat-fullscreen [data-testid='dm-inbox-panel']:focus,
+html.xchat-fullscreen [data-testid='dm-inbox-panel']:focus-visible,
+html.xchat-fullscreen [data-testid='dm-inbox-panel']:focus-within,
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] *:focus,
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] *:focus-visible,
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] *:focus-within {
   outline: none !important;
 }
 
@@ -105,7 +105,7 @@ html.tchat-fullscreen [data-testid='dm-inbox-panel'] *:focus-within {
  * inner element and would otherwise cover our selection AND lag behind j/k (updating only
  * when the thread actually opens), creating a second, flashing highlight. Our blue cursor is
  * the single source of truth. ---- */
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .bg-gray-0 {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .bg-gray-0 {
   background: transparent !important;
 }
 
@@ -115,31 +115,40 @@ html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .bg-gray-0 {
  * never aligns with the divider. Instead we drop X's inner divider and put BOTH the divider
  * (an inset box-shadow) and the selection tint on the <li> slot itself — same box, so the
  * selection fills exactly divider-to-divider. Theme-agnostic translucent grey divider. */
-html.tchat-fullscreen [data-testid^='dm-conversation-item-'] .flex-1.flex-col {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .flex-1.flex-col {
   border-bottom: 0 !important;
 }
-html.tchat-fullscreen [data-testid='dm-inbox-panel'] li {
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] li {
   box-shadow: inset 0 -1px 0 rgba(127, 127, 127, 0.22) !important;
 }
-html.tchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.tchat-selected) {
-  background: var(--tchat-sel-light) !important;
+/* Move X's row hover onto the full <li> slot too (it otherwise fills only the inner content,
+ * leaving the padding un-filled). Placed before the selection rule so selection wins on a
+ * hovered-selected row. */
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .px-4:hover {
+  background: transparent !important;
+}
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:hover {
+  background: rgba(127, 127, 127, 0.1) !important;
+}
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
+  background: var(--xchat-sel-light) !important;
 }
 @media (prefers-color-scheme: dark) {
-  html.tchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.tchat-selected) {
-    background: var(--tchat-sel-dark) !important;
+  html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
+    background: var(--xchat-sel-dark) !important;
   }
 }
 /* Keep the inner boxes transparent so only the <li> tint shows. */
-[data-testid^='dm-conversation-item-'].tchat-selected,
-[data-testid^='dm-conversation-item-'].tchat-selected a,
-[data-testid^='dm-conversation-item-'].tchat-selected .px-4 {
+[data-testid^='dm-conversation-item-'].xchat-selected,
+[data-testid^='dm-conversation-item-'].xchat-selected a,
+[data-testid^='dm-conversation-item-'].xchat-selected .px-4 {
   background: transparent !important;
   box-shadow: none !important;
 }
 
 /* ---- Composer "R to reply" keycap hint (inflow-style) ---- */
 [data-testid='dm-composer-input-container'] { position: relative !important; }
-.tchat-reply-hint {
+.xchat-reply-hint {
   position: absolute;
   right: 56px; /* clear X's voice button at the far right */
   top: 50%;
@@ -151,7 +160,7 @@ html.tchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.tchat-selected) {
   color: #8899a6;
   font: 500 12px/1 -apple-system, system-ui, sans-serif;
 }
-.tchat-reply-hint kbd {
+.xchat-reply-hint kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -164,12 +173,12 @@ html.tchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.tchat-selected) {
 }
 
 /* ---- Search collapsed into a header button ----
- * Hide X's full-width search bar; reveal it only when tchat opens search (button or "/"). */
-html.tchat-fullscreen [data-testid='dm-search-bar'] { display: none !important; }
-html.tchat-fullscreen.tchat-search-open [data-testid='dm-search-bar'] { display: flex !important; }
+ * Hide X's full-width search bar; reveal it only when xchat opens search (button or "/"). */
+html.xchat-fullscreen [data-testid='dm-search-bar'] { display: none !important; }
+html.xchat-fullscreen.xchat-search-open [data-testid='dm-search-bar'] { display: flex !important; }
 
 /* Our header search button, sized to match X's round header icons. */
-.tchat-header-btn {
+.xchat-header-btn {
   all: unset;
   box-sizing: border-box;
   display: inline-flex;
@@ -182,6 +191,6 @@ html.tchat-fullscreen.tchat-search-open [data-testid='dm-search-bar'] { display:
   cursor: pointer;
   color: currentColor;
 }
-.tchat-header-btn:hover { background: rgba(127, 127, 127, 0.15); }
-.tchat-header-btn:focus,
-.tchat-header-btn:focus-visible { outline: none !important; }
+.xchat-header-btn:hover { background: rgba(127, 127, 127, 0.15); }
+.xchat-header-btn:focus,
+.xchat-header-btn:focus-visible { outline: none !important; }

@@ -34,7 +34,7 @@ const CSS = `
 function ensure(): ShadowRoot {
   if (shadow) return shadow;
   hostEl = document.createElement('div');
-  hostEl.id = 'tchat-palette-host';
+  hostEl.id = 'xchat-palette-host';
   document.documentElement.appendChild(hostEl);
   shadow = hostEl.attachShadow({ mode: 'open' });
   const style = document.createElement('style');

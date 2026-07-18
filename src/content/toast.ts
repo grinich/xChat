@@ -6,7 +6,7 @@ let shadow: ShadowRoot | null = null;
 function ensureHost(): ShadowRoot {
   if (shadow) return shadow;
   host = document.createElement('div');
-  host.id = 'tchat-toast-host';
+  host.id = 'xchat-toast-host';
   host.style.cssText = 'position:fixed;z-index:2147483647;bottom:20px;left:50%;transform:translateX(-50%);';
   document.documentElement.appendChild(host);
   shadow = host.attachShadow({ mode: 'open' });

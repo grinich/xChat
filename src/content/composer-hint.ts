@@ -4,7 +4,7 @@
 
 import { SEL, $ } from './selectors';
 
-const HINT_CLASS = 'tchat-reply-hint';
+const HINT_CLASS = 'xchat-reply-hint';
 
 export function applyComposerHint(): void {
   const container = $(SEL.composerInputContainer) ?? $(SEL.composerForm);

@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 const srcDir = fileURLToPath(new URL('./src', import.meta.url));
 
-// tchat — an in-page enhancer for X (Twitter) DMs.
+// xchat — an in-page enhancer for X (Twitter) DMs.
 // One content script on the DM routes + a tiny background worker.
 // No cookies / API / declarativeNetRequest: X does all data/crypto/realtime/sending;
 // we only enhance the rendered page. Minimal permission footprint.

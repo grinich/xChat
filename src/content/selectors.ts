@@ -1,4 +1,4 @@
-// SINGLE SOURCE OF TRUTH for every X DOM hook tchat depends on.
+// SINGLE SOURCE OF TRUTH for every X DOM hook xchat depends on.
 // If X changes its DM markup, this is the (usually one-line) place to fix it.
 // Everything is anchored to data-testid / role — never hashed class names.
 

@@ -1,4 +1,4 @@
-// Re-applies tchat's DOM decorations after X re-renders the DM list.
+// Re-applies xchat's DOM decorations after X re-renders the DM list.
 // X owns the list; it re-mounts rows on scroll/route changes, wiping our classes/attrs.
 // A debounced MutationObserver re-applies the selection highlight and triage augmentation.
 

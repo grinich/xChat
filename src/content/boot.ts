@@ -14,8 +14,8 @@ import { selectInitialWhenReady, installClickSync } from './selection';
 import { applyComposerHint } from './composer-hint';
 import { installComposerFocusGuard } from './composer-focus';
 
-const LOG = '[tchat]';
-const FULLSCREEN_CLASS = 'tchat-fullscreen';
+const LOG = '[xchat]';
+const FULLSCREEN_CLASS = 'xchat-fullscreen';
 
 let wired = false; // one-time listeners (keyboard, observer, triage)
 let active = false; // currently activated on a DM route with the UI present

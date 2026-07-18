@@ -6,7 +6,7 @@ import { SEL, conversationRows } from './selectors';
 import { convIdFromItemTestid } from '../lib/id-parse';
 import { openConversation, currentConversationId } from './actions';
 
-const SELECTED_CLASS = 'tchat-selected';
+const SELECTED_CLASS = 'xchat-selected';
 
 let selectedId: string | null = null;
 

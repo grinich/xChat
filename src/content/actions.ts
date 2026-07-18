@@ -63,13 +63,39 @@ export function newChat(): void {
   ($(SEL.newChatButton) as HTMLElement | null)?.click();
 }
 
+const PANEL_INPUT = '[data-testid="dm-inbox-panel"] input, [data-testid="dm-inbox-panel"] textarea';
+
+/** Reveal + activate X's DM search and focus its input. X's search bar is a placeholder that
+ *  mounts a real <input> only on a genuine pointer interaction (a plain .click() isn't enough),
+ *  after which X focuses it; we simulate the full pointer sequence and wire close-on-blur. */
 export function focusSearch(): boolean {
-  // Search is collapsed into a header button by default; reveal it, then focus.
-  document.documentElement.classList.add('tchat-search-open');
+  document.documentElement.classList.add('xchat-search-open');
+
+  // Already active? just focus the mounted input.
+  const existing = $(PANEL_INPUT) as HTMLElement | null;
+  if (existing) {
+    existing.focus();
+    return true;
+  }
+
   const bar = $(SEL.searchBar);
-  const input = (bar?.querySelector('input,textarea') as HTMLElement | null) ?? bar;
-  if (!input) return false;
-  input.focus();
+  if (!bar) return false;
+  for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+    bar.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+  }
+
+  setTimeout(() => {
+    const inp = $(PANEL_INPUT) as HTMLInputElement | null;
+    if (!inp) return;
+    if (document.activeElement !== inp) inp.focus();
+    if (!inp.dataset.xchatWired) {
+      inp.dataset.xchatWired = '1';
+      // Collapse back to the header button when the user leaves an empty search.
+      inp.addEventListener('blur', () => {
+        if (!inp.value) document.documentElement.classList.remove('xchat-search-open');
+      });
+    }
+  }, 40);
   return true;
 }
 

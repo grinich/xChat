@@ -1,8 +1,8 @@
-# tchat
+# xChat
 
 A fast, full-screen, **keyboard-first layer on top of X (Twitter) Direct Messages** — inspired
-by Superhuman and the `inflow` LinkedIn client. tchat is an in-page Chrome extension: it never
-touches X's API or crypto. X does all the fetching, decryption, realtime, and sending; tchat
+by Superhuman and the `inflow` LinkedIn client. xChat is an in-page Chrome extension: it never
+touches X's API or crypto. X does all the fetching, decryption, realtime, and sending; xChat
 adds a full-screen reskin, keyboard navigation, a command palette, a quick-switcher, and
 client-side triage (archive / star / snooze). Because it rides X's own client, **every
 conversation works — including end-to-end-encrypted XChat threads.**
@@ -27,9 +27,9 @@ The extension can't self-install (Chrome requires a manual step), so:
 2. Open `chrome://extensions`
 3. Toggle **Developer mode** on (top-right)
 4. Click **Load unpacked** and select the **`dist`** folder
-5. Open <https://x.com/messages> (or `x.com/i/chat`). tchat activates automatically.
+5. Open <https://x.com/messages> (or `x.com/i/chat`). xChat activates automatically.
 
-To pick up code changes: `npm run build` again, then click the refresh icon on the tchat card
+To pick up code changes: `npm run build` again, then click the refresh icon on the xChat card
 in `chrome://extensions` and reload the X tab. (`npm run dev` auto-rebuilds.)
 
 ## Keyboard shortcuts
