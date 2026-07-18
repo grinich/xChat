@@ -12,6 +12,7 @@ import { installKeyboard } from './keyboard';
 import { startObserver } from './observer';
 import { selectInitialWhenReady, installClickSync } from './selection';
 import { applyComposerHint } from './composer-hint';
+import { applyHeader } from './header';
 import { installComposerFocusGuard } from './composer-focus';
 
 const LOG = '[xchat]';
@@ -32,13 +33,15 @@ function wireOnce(): void {
   installComposerFocusGuard();
   installClickSync();
   installKeyboard();
-  startObserver();
   console.info(`${LOG} ready — keyboard-first DMs enabled.`);
 }
 
 function activate(): void {
   document.documentElement.classList.add(FULLSCREEN_CLASS);
   wireOnce();
+  // Called every tick while on a DM route so the logo/search button survive SPA navigation
+  // (the observer alone can go stale when the DM container is replaced).
+  applyHeader();
   applyComposerHint();
   if (!active) {
     active = true;
@@ -54,8 +57,11 @@ function deactivate(): void {
 /** Called on load, on route changes, and on a cheap interval. Idempotent. */
 function tick(): void {
   if (isDmRoute()) {
+    // Add the reskin class IMMEDIATELY (even before the DM UI renders) so the
+    // manifest-injected CSS is already gated on — this removes the flash of X's default
+    // interface. Runs at document_start (see the content-script entry).
+    document.documentElement.classList.add(FULLSCREEN_CLASS);
     if (dmPresent()) activate();
-    // else: DM route but UI not rendered yet — wait; the interval will retry.
   } else {
     deactivate();
   }
@@ -80,6 +86,10 @@ export function start(): void {
     };
   });
   window.addEventListener('popstate', tick);
+  // Start the decoration observer NOW (document_start), not on first activation: it watches the
+  // document root, so the moment X mounts the DM header our logo/search inject in the same
+  // frame — no waiting for the poll, on first load or SPA nav.
+  startObserver();
   // Reliability backstop: activates whenever the DM UI shows up, however we got there.
   setInterval(tick, 600);
   tick();

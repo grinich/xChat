@@ -14,7 +14,8 @@ export default defineConfig({
     name: 'xChat — X DMs, keyboard-first',
     description:
       'A fast, full-screen, keyboard-driven layer on top of X (Twitter) Direct Messages.',
-    version: '0.1.0',
+    // version comes from package.json (WXT default) so a release tag drives it — see the
+    // "Set version from tag" step in .github/workflows/release.yml.
     host_permissions: ['https://x.com/*'],
   },
   alias: { '@': srcDir },

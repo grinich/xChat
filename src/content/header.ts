@@ -1,17 +1,38 @@
-// Header tweaks: rename "Chat" → "xChat", and collapse X's full-width search bar into a
-// compact search button placed just left of the "All" filter dropdown. Re-applied by the
-// observer since X re-renders the header.
+// Header tweaks: add an X-logo home button at the far left, and collapse X's full-width
+// search bar into a compact search button just left of the "All" filter dropdown. We keep
+// X's own "Chat" title. Re-applied by the observer + activate() since X re-renders the header.
 
 import { SEL, $ } from './selectors';
-import { focusSearch } from './actions';
+import { focusSearch, navigate } from './actions';
 
 const SEARCH_BTN_ID = 'xchat-search-btn';
+const HOME_BTN_ID = 'xchat-home-btn';
 const SEARCH_OPEN_CLASS = 'xchat-search-open';
 
+// The X wordmark logo (24x24), used as a home button in the chat header.
+const X_LOGO_PATH =
+  'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z';
+
 export function applyHeader(): void {
-  // "Chat" → "xChat"
+  // We keep X's own "Chat" title text as-is (no in-app rename).
   const title = $(SEL.inboxTitle);
-  if (title && title.textContent !== 'xChat') title.textContent = 'xChat';
+
+  // X logo (home button) at the far left of the chat header — we hide X's nav rail in the
+  // full-screen reskin, so this keeps a way back home. Clicking navigates to /home.
+  if (title?.parentElement && !document.getElementById(HOME_BTN_ID)) {
+    const logo = document.createElement('button');
+    logo.id = HOME_BTN_ID;
+    logo.type = 'button';
+    logo.setAttribute('aria-label', 'Home');
+    logo.className = 'xchat-home-btn';
+    logo.innerHTML =
+      `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="${X_LOGO_PATH}"/></svg>`;
+    logo.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate('/home');
+    });
+    title.parentElement.insertBefore(logo, title);
+  }
 
   // Search button, injected once, immediately before the "All" dropdown.
   const dropdown = $(SEL.inboxDropdownTrigger);

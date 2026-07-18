@@ -7,7 +7,9 @@ import { start } from '../src/content/boot';
 // to X's React re-renders without JS.
 export default defineContentScript({
   matches: ['*://x.com/*'],
-  runAt: 'document_idle',
+  // document_start: add the full-screen class before X paints the DM UI, so the reskin is
+  // gated on from the first frame (no flash of X's default interface).
+  runAt: 'document_start',
   cssInjectionMode: 'manifest',
   main() {
     start();

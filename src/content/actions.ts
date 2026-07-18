@@ -13,15 +13,46 @@ export function rowFor(id: string): HTMLElement | null {
   return null;
 }
 
-/** Open a conversation via focus-free SPA navigation (pushState + popstate). We deliberately
- *  do NOT click the row's anchor: clicking focuses it and X flashes a blue focus ring. The
- *  History API drives X's router without moving focus onto any row, so no outline ever shows. */
+/** Open a conversation by clicking the inbox row's OWN anchor. X attaches a React onClick to
+ *  that <a> that does a router PUSH — instant, in-place, no page reload and no slide. The
+ *  focus side effects are handled elsewhere so this stays focus-free in practice: X's auto-
+ *  focus of the composer is blurred by the composer focus guard, and the inbox panel suppresses
+ *  the anchor's focus outline in CSS. Falls back to the History API only if the row isn't
+ *  currently rendered (virtualized off-screen). */
 export function openConversation(id: string): void {
-  navigate(routeFor(id));
+  const anchor = rowFor(id)?.querySelector('a[href]') as HTMLElement | null;
+  if (anchor) {
+    anchor.click();
+    return;
+  }
+  historyNavigate(routeFor(id));
 }
 
-/** SPA-friendly navigation: push state + popstate so X's router reacts without a reload. */
+/** SPA navigation that matches how X's own links behave — a router PUSH (no reload, no slide).
+ *
+ *  We used to do `history.pushState` + a synthetic `popstate`, but X's router reads a popstate
+ *  as a *backward* navigation and plays a vertical slide transition — the "weird animation"
+ *  seen flipping between the main app and chat. And a throwaway <a> we build ourselves isn't
+ *  wired to X's router, so clicking it triggers the browser's default full-page load. The only
+ *  clean path is to click one of X's OWN nav anchors, whose React onClick does an in-place
+ *  push. Those anchors stay in the DOM even though our reskin hides X's nav rail (display:none
+ *  still dispatches a programmatic .click() to React), so we find the anchor for this route and
+ *  click it. Falls back to the History API if X has no anchor for the path. */
 export function navigate(path: string): void {
+  const anchor =
+    (document.querySelector(`a[href="${path}"]`) as HTMLElement | null) ??
+    (path === '/home' ? (document.querySelector('a[aria-label="Home"]') as HTMLElement | null) : null);
+  if (anchor) {
+    anchor.click();
+    return;
+  }
+  historyNavigate(path);
+}
+
+/** Last-resort navigation when no real X anchor is available for the route. Uses the History
+ *  API + popstate so X's router reacts without a reload; this is the only path that can still
+ *  show X's slide transition, so we reach it only when a real-anchor click isn't possible. */
+function historyNavigate(path: string): void {
   history.pushState(null, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }

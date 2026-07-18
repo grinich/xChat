@@ -17,6 +17,15 @@ html.xchat-fullscreen header[role='banner'] { display: none !important; }
 html.xchat-fullscreen [data-testid='sidebarColumn'] { display: none !important; }
 html.xchat-fullscreen main[role='main'] { width: 100vw !important; }
 html.xchat-fullscreen main[role='main'] > div { width: 100% !important; }
+/* X reserves a right-hand gutter via an inline padding-right on the app-shell wrapper around
+ * the primary column (room for the right column / scrollbar in its normal layout). The value
+ * SCALES with window width — ~10px when narrow, up to 70px+ when wide — so matching the literal
+ * "10px" left a growing strip on the right at large widths. Match the wrapper structurally
+ * instead (any inline padding-right on the div that contains the primary column) so we zero it
+ * regardless of the value. */
+html.xchat-fullscreen main[role='main'] div[style*='padding-right']:has([data-testid='primaryColumn']) {
+  padding-right: 0 !important;
+}
 html.xchat-fullscreen [data-testid='primaryColumn'] {
   max-width: none !important;
   width: 100% !important;
@@ -83,6 +92,24 @@ html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .rounded-full > * {
   height: 100% !important;
   object-fit: cover !important;
   align-self: stretch !important;
+}
+
+/* ---- Loading skeleton: match the compact row metrics ----
+ * While the inbox (or Message Requests, which mounts inside the same panel) loads, X renders
+ * placeholder rows with pulsing gray circles + bars at its DEFAULT size — a 56px (h-14) avatar
+ * with py-3 spacing — which is taller than our compacted rows, so the list visibly jumps when
+ * real data arrives. The skeleton has no data-testid, so we key off X's pulsing-placeholder
+ * utility class (matched by substring since it ships as `motion-safe:animate-pulse`), scoped to
+ * the inbox panel. Shrink the avatar to 40px and set the wrapper padding so the skeleton row
+ * height matches a real compact row (~58px). Real avatars aren't pulsing, so `:has(...)` only
+ * ever matches skeleton rows — never a loaded row. */
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] [class*='animate-pulse'][class*='rounded-full'] {
+  width: 40px !important;
+  height: 40px !important;
+}
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] .py-3:has([class*='animate-pulse']) {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
 }
 
 /* ---- Never show a blue focus ring/outline anywhere in the conversation list ----
@@ -173,20 +200,32 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
 }
 
 /* ---- Search collapsed into a header button ----
- * Hide X's full-width search bar; reveal it only when xchat opens search (button or "/"). */
-html.xchat-fullscreen [data-testid='dm-search-bar'] { display: none !important; }
-html.xchat-fullscreen.xchat-search-open [data-testid='dm-search-bar'] { display: flex !important; }
+ * Hide the whole search ROW (its wrapper, not just the bar — otherwise the wrapper's padding
+ * leaves a gap under the header) when search is closed; reveal it when xchat opens search.
+ * Also collapse X's empty spacer div between the header and the list. */
+html.xchat-fullscreen:not(.xchat-search-open)
+  [data-testid='dm-inbox-header'] div:has(> [data-testid='dm-search-bar']),
+html.xchat-fullscreen:not(.xchat-search-open)
+  [data-testid='dm-inbox-header'] .px-4.py-1.select-none {
+  display: none !important;
+}
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] .py-2:empty {
+  display: none !important;
+}
 
-/* Our header search button, sized to match X's round header icons. */
+/* Our header search button, matched to X's round header icons (Requests / New message): a
+ * 36px circle with a 1px hairline ring and transparent fill. X's ring is rgb(43,46,49) in dark
+ * mode; we use a theme-agnostic translucent grey so it reads the same in light + dark. */
 .xchat-header-btn {
   all: unset;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  margin-right: 4px;
+  width: 36px;
+  height: 36px;
+  margin-right: 8px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
   border-radius: 9999px;
   cursor: pointer;
   color: currentColor;
@@ -194,3 +233,21 @@ html.xchat-fullscreen.xchat-search-open [data-testid='dm-search-bar'] { display:
 .xchat-header-btn:hover { background: rgba(127, 127, 127, 0.15); }
 .xchat-header-btn:focus,
 .xchat-header-btn:focus-visible { outline: none !important; }
+
+/* X logo / home button at the far left of the chat header. */
+.xchat-home-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-right: 4px;
+  border-radius: 9999px;
+  cursor: pointer;
+  color: currentColor;
+}
+.xchat-home-btn:hover { background: rgba(127, 127, 127, 0.15); }
+.xchat-home-btn:focus,
+.xchat-home-btn:focus-visible { outline: none !important; }

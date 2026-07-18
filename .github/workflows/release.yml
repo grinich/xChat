@@ -1,0 +1,76 @@
+name: Release
+
+# Builds, zips, and publishes the extension whenever a version tag is pushed.
+#   git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # needed to create the GitHub Release + upload the zip
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` runs the postinstall (`wxt prepare`), which generates .wxt types.
+      - run: npm ci
+
+      # Make the tag (e.g. v0.2.0) drive the manifest version (read from package.json).
+      - name: Set version from tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - name: Typecheck
+        run: npm run compile
+
+      - name: Test
+        run: npm test
+
+      # `wxt zip` builds the production extension and zips it to dist/*.zip
+      - name: Build + zip
+        run: npm run zip
+
+      - name: Upload zip as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xchat-extension
+          path: dist/*.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+
+  # ---------------------------------------------------------------------------
+  # Chrome Web Store publish — enabled once store credentials exist as repo
+  # secrets. Set: CWS_EXTENSION_ID, CWS_CLIENT_ID, CWS_CLIENT_SECRET,
+  # CWS_REFRESH_TOKEN (from the Chrome Web Store API OAuth flow). Then this job
+  # uploads + submits the zip for review on each tag.
+  # ---------------------------------------------------------------------------
+  # publish-chrome:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   if: ${{ vars.PUBLISH_TO_CWS == 'true' }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #         cache: npm
+  #     - run: npm ci
+  #     - name: Submit to Chrome Web Store
+  #       run: npx wxt submit --chrome-zip dist/*.zip
+  #       env:
+  #         CHROME_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+  #         CHROME_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+  #         CHROME_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+  #         CHROME_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
