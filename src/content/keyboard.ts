@@ -7,7 +7,7 @@ import { openPalette, paletteOpen } from './palette';
 import { openSwitcher, switcherOpen } from './switcher';
 import { requestComposerFocus, hasReplyIntent } from './composer-focus';
 import { select, selectFirst } from './selection';
-import { closeRequests } from './actions';
+import { closeRequests, acceptRequest } from './actions';
 import { SEL, dmPresent } from './selectors';
 
 let lastG = 0; // for the `g g` chord
@@ -85,6 +85,10 @@ export function installKeyboard(): void {
           run('prev');
           break;
         case 'Enter':
+          e.preventDefault();
+          // On an open message request, Enter accepts it; otherwise it opens the selection.
+          if (!acceptRequest()) run('open');
+          break;
         case 'o':
           e.preventDefault();
           run('open');
@@ -101,11 +105,17 @@ export function installKeyboard(): void {
           e.preventDefault();
           run('search');
           break;
-        case '1':
-          run('inbox');
+        case 'Tab':
+          e.preventDefault();
+          run(e.shiftKey ? 'filter-prev' : 'filter-next');
           break;
-        case '2':
+        case 'q':
+          e.preventDefault();
           run('requests');
+          break;
+        case 'p':
+          e.preventDefault();
+          run('pin');
           break;
         case '?':
           e.preventDefault();

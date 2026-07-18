@@ -3,6 +3,8 @@
 
 import { SEL, $, conversationRows } from './selectors';
 import { convIdFromItemTestid, convIdFromPath, routeFor, toColon } from '../lib/id-parse';
+import { requestComposerFocus } from './composer-focus';
+import { toast } from './toast';
 
 /** Find a rendered conversation row by id (colon form). */
 export function rowFor(id: string): HTMLElement | null {
@@ -102,6 +104,14 @@ export function newChat(): void {
   ($(SEL.newChatButton) as HTMLElement | null)?.click();
 }
 
+/** Synthesize a full pointer interaction. Some X controls (the radix filter dropdown, the
+ *  search-bar placeholder) ignore a bare .click() and only react to real pointer events. */
+function synthPointerClick(el: HTMLElement): void {
+  for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+    el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+  }
+}
+
 const PANEL_INPUT = '[data-testid="dm-inbox-panel"] input, [data-testid="dm-inbox-panel"] textarea';
 
 /** Reveal + activate X's DM search and focus its input. X's search bar is a placeholder that
@@ -119,9 +129,7 @@ export function focusSearch(): boolean {
 
   const bar = $(SEL.searchBar);
   if (!bar) return false;
-  for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
-    bar.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
-  }
+  synthPointerClick(bar);
 
   setTimeout(() => {
     const inp = $(PANEL_INPUT) as HTMLInputElement | null;
@@ -151,7 +159,164 @@ export function closeRequests(): boolean {
 }
 
 export function openInboxFilter(): void {
-  ($(SEL.inboxDropdownTrigger) as HTMLElement | null)?.click();
+  const trig = $(SEL.inboxDropdownTrigger);
+  if (trig) synthPointerClick(trig);
+}
+
+export type InboxFilter = 'all' | 'unread' | 'oneonone' | 'groups';
+
+/** While set on <html>, style.css keeps [role=menu] popovers invisible. Used when we drive
+ *  X's menus programmatically — a shortcut should feel like a direct switch, with no menu
+ *  flashing open. */
+const SILENT_MENU_CLASS = 'xchat-silent-menu';
+
+/** Run a menu-driving interaction with all menus hidden. The `done` callback keeps menus
+ *  hidden until the (radix-animated) unmount finishes, then unhides; a safety timer makes
+ *  sure we never leave menus invisible if the interaction goes sideways. */
+function withSilentMenus(run: (done: () => void) => void): void {
+  const html = document.documentElement;
+  html.classList.add(SILENT_MENU_CLASS);
+  let finished = false;
+  const done = () => {
+    if (finished) return;
+    finished = true;
+    let waits = 20;
+    const poll = () => {
+      if (!document.querySelector('[role="menu"]') || waits-- <= 0) {
+        html.classList.remove(SILENT_MENU_CLASS);
+      } else {
+        setTimeout(poll, 50);
+      }
+    };
+    poll();
+  };
+  run(done);
+  setTimeout(done, 1500);
+}
+
+/** Dismiss any open popover menu (radix closes on Escape). */
+function closeAnyMenu(): void {
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+}
+
+/** Switch the inbox filter (All / Unread / Direct / Groups) by driving X's own dropdown.
+ *  The menu is a radix portal that only exists while open, so we open it (invisibly),
+ *  then click the item once it mounts. */
+export function setInboxFilter(filter: InboxFilter): void {
+  const item = () => $(`[data-testid="${SEL.inboxDropdownItemPrefix}${filter}"]`);
+  const existing = item();
+  if (existing) {
+    // The user opened the menu themselves — it's visible; just pick the item.
+    synthPointerClick(existing);
+    return;
+  }
+  withSilentMenus((done) => {
+    openInboxFilter();
+    let tries = 10;
+    const tick = () => {
+      const el = item();
+      if (el) {
+        synthPointerClick(el);
+        done();
+        return;
+      }
+      if (--tries > 0) setTimeout(tick, 50);
+      else done();
+    };
+    setTimeout(tick, 50);
+  });
+}
+
+/** Toggle pin on a conversation by driving X's row context menu (right-click →
+ *  "Pin conversation" / "Unpin conversation"). The menu is opened invisibly and its items
+ *  carry no testids, so the pin entry is matched by label ("Unpin" has no word boundary
+ *  before "pin" — don't add \b). Two hard-won details: the contextmenu handler lives on an
+ *  INNER element of the row (dispatching on the row itself does nothing), and the menu
+ *  reacts to PointerEvents with a real pointerType, not bare MouseEvents. Returns false if
+ *  the row isn't rendered. */
+export function togglePin(id: string | null): boolean {
+  const row = id ? rowFor(id) : null;
+  if (!row) return false;
+  const r = row.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const inner = document.elementFromPoint(cx, cy);
+  const target = row.contains(inner) && inner ? inner : (row.querySelector('a, div') ?? row);
+  const base = { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, pointerId: 1, pointerType: 'mouse', isPrimary: true } as const;
+  withSilentMenus((done) => {
+    target.dispatchEvent(new PointerEvent('pointerdown', { ...base, button: 2, buttons: 2 }));
+    target.dispatchEvent(new MouseEvent('mousedown', { ...base, button: 2, buttons: 2 }));
+    target.dispatchEvent(new PointerEvent('pointerup', { ...base, button: 2, buttons: 0 }));
+    target.dispatchEvent(new MouseEvent('contextmenu', { ...base, button: 2 }));
+    let tries = 10;
+    const tick = () => {
+      const pinItem = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((el) =>
+        /pin conversation/i.test(el.textContent ?? ''),
+      );
+      if (pinItem) {
+        // Read the label BEFORE clicking — it tells us which way the toggle went.
+        const unpinning = /^\s*unpin/i.test(pinItem.textContent ?? '');
+        const ir = pinItem.getBoundingClientRect();
+        const b = { ...base, clientX: ir.left + 24, clientY: ir.top + ir.height / 2 };
+        pinItem.dispatchEvent(new PointerEvent('pointermove', b));
+        pinItem.dispatchEvent(new PointerEvent('pointerdown', { ...b, button: 0, buttons: 1 }));
+        pinItem.dispatchEvent(new MouseEvent('mousedown', { ...b, button: 0, buttons: 1 }));
+        pinItem.dispatchEvent(new PointerEvent('pointerup', { ...b, button: 0, buttons: 0 }));
+        pinItem.dispatchEvent(new MouseEvent('mouseup', { ...b, button: 0, buttons: 0 }));
+        pinItem.dispatchEvent(new MouseEvent('click', { ...b, button: 0, detail: 1 }));
+        toast(unpinning ? 'Unpinned conversation' : 'Pinned conversation', undefined, 1600, 'top');
+        done();
+        return;
+      }
+      if (--tries > 0) {
+        setTimeout(tick, 50);
+      } else {
+        // Menu opened but no pin entry (or never opened) — close and bail quietly.
+        closeAnyMenu();
+        done();
+      }
+    };
+    setTimeout(tick, 50);
+  });
+  return true;
+}
+
+const FILTER_ORDER: InboxFilter[] = ['all', 'unread', 'oneonone', 'groups'];
+const FILTER_LABELS: Record<string, InboxFilter> = { all: 'all', unread: 'unread', direct: 'oneonone', groups: 'groups' };
+
+/** Cycle the inbox filter (Tab / Shift+Tab). The current filter is read from the dropdown
+ *  trigger's own label — "All" / "Unread" / "Direct" / "Groups" (label-matched like the pin
+ *  menu item; falls back to "all" if X renames/localizes them). The trigger also contains
+ *  our injected "tab" keycap hint — exclude it from the read, or the label never matches
+ *  and Tab gets stuck re-selecting the fallback's neighbor. */
+export function cycleInboxFilter(dir: 1 | -1): void {
+  const trig = $(SEL.inboxDropdownTrigger);
+  const label = Array.from(trig?.childNodes ?? [])
+    .filter((n) => !(n instanceof HTMLElement && n.classList.contains('xchat-btn-hint')))
+    .map((n) => n.textContent ?? '')
+    .join('')
+    .trim()
+    .toLowerCase();
+  const cur = FILTER_LABELS[label] ?? 'all';
+  const i = Math.max(0, FILTER_ORDER.indexOf(cur));
+  setInboxFilter(FILTER_ORDER[(i + dir + FILTER_ORDER.length) % FILTER_ORDER.length]);
+}
+
+/** Accept the currently open message request (X's Accept button). Returns false when no
+ *  request thread is open. */
+export function acceptRequest(): boolean {
+  const btn = $(SEL.requestAcceptButton);
+  if (!btn) return false;
+  btn.click();
+  // Accepting swaps the Accept/Delete banner for the composer; focus it once it mounts so
+  // the user can start typing a reply immediately.
+  let tries = 20;
+  const tick = () => {
+    if (requestComposerFocus()) return;
+    if (--tries > 0) setTimeout(tick, 100);
+  };
+  setTimeout(tick, 100);
+  return true;
 }
 
 /** Open the conversation info/settings panel (where mute/block/delete live). */

@@ -189,6 +189,18 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
   box-shadow: none !important;
 }
 
+/* ---- Composer focus ring: crisp blue outline + soft glow while typing a reply ----
+ * Drawn as box-shadow on the rounded input container so it follows the pill shape;
+ * :focus-within so it tracks the textarea inside. X's accent blue (#1d9bf0). */
+html.xchat-fullscreen [data-testid='dm-composer-input-container'] {
+  transition: box-shadow 120ms ease !important;
+}
+html.xchat-fullscreen [data-testid='dm-composer-input-container']:focus-within {
+  box-shadow:
+    0 0 0 2px #1d9bf0,
+    0 0 14px 2px rgba(29, 155, 240, 0.35) !important;
+}
+
 /* ---- Composer "R to reply" keycap hint (inflow-style) ---- */
 [data-testid='dm-composer-input-container'] { position: relative !important; }
 .xchat-reply-hint {
@@ -203,6 +215,73 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
   color: #8899a6;
   font: 500 12px/1 -apple-system, system-ui, sans-serif;
 }
+/* ---- Instant filter switches: no entrance animation on the conversation list ----
+ * When a filter's list loads fresh, X tweens the list wrapper with a JS-driven motion
+ * library: inline `opacity: 0` + `transform: translate3d(0, -N, 0)` animated frame by
+ * frame, so the whole list fades in while sliding downward. There is no CSS
+ * animation/transition to disable — but CSS !important beats inline styles on every
+ * frame, so pinning transform/opacity renders the list instantly. Scoped to the inbox
+ * panel; the virtualizer positions rows via inline top/left (not transform), so row
+ * placement is unaffected. */
+html.xchat-fullscreen [data-testid='dm-inbox-panel'] div[style*='translate3d'] {
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+/* While xchat drives a menu programmatically (1-4 filter keys, p pin toggle), keep every
+ * popover menu invisible — the shortcut should feel like a direct action, not a scripted
+ * menu interaction. actions.ts adds/removes the class around the interaction. */
+html.xchat-silent-menu [role='menu'] {
+  visibility: hidden !important;
+}
+
+/* ---- Keycap shortcut hints ----
+ * All pure CSS (::after), so portal-mounted menus and re-rendered buttons decorate
+ * themselves with no JS. Icon buttons show a hover tooltip keycap below the button;
+ * the filter-menu items and the request Accept button show inline keycaps. */
+
+/* Always-visible keycap pinned to the bottom-left corner of each header icon button
+ * (injected INSIDE the button by header.ts; same keycap look as the R / esc hints).
+ * Solid page-colored backing so it reads cleanly where it overlaps the button's ring. */
+html.xchat-fullscreen [data-testid='dm-inbox-requests-button'],
+html.xchat-fullscreen [data-testid='dm-new-chat-button'],
+html.xchat-fullscreen [data-testid='dm-inbox-dropdown-trigger'] {
+  position: relative;
+}
+.xchat-btn-hint {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  z-index: 2;
+  display: inline-flex;
+  pointer-events: none;
+  color: #8899a6;
+}
+.xchat-btn-hint kbd {
+  background: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  .xchat-btn-hint kbd {
+    background: #000;
+  }
+}
+html.xchat-fullscreen [data-testid='dm-inbox-title'] {
+  white-space: nowrap !important;
+}
+
+/* "enter = accept" keycap inside the message-request Accept button; currentColor so it
+ * adapts to the button's own text color. */
+[data-testid='dm-message-request-accept-button']::after {
+  content: 'enter';
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  opacity: 0.7;
+  font: 600 10px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 /* "esc = back" keycap next to the Message Requests back button. */
 .xchat-esc-hint {
   display: inline-flex;
@@ -212,7 +291,8 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
   color: #8899a6;
 }
 .xchat-reply-hint kbd,
-.xchat-esc-hint kbd {
+.xchat-esc-hint kbd,
+.xchat-btn-hint kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -244,6 +324,7 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] .py-2:empty {
 .xchat-header-btn {
   all: unset;
   box-sizing: border-box;
+  position: relative; /* anchors the .xchat-btn-hint keycap */
   display: inline-flex;
   align-items: center;
   justify-content: center;

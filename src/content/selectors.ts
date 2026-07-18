@@ -24,8 +24,13 @@ export const SEL = {
   // Inbox chrome
   inboxTitle: '[data-testid="dm-inbox-title"]',
   inboxDropdownTrigger: '[data-testid="dm-inbox-dropdown-trigger"]',
+  // Filter menu (radix portal; mounted only while open). Item testids share this prefix:
+  // dm-inbox-dropdown-{all,unread,oneonone,groups}.
+  inboxDropdownContent: '[data-testid="dm-inbox-dropdown-content"]',
+  inboxDropdownItemPrefix: 'dm-inbox-dropdown-',
   requestsButton: '[data-testid="dm-inbox-requests-button"]',
   requestsBackButton: '[data-testid="dm-message-requests-back"]',
+  requestAcceptButton: '[data-testid="dm-message-request-accept-button"]',
   newChatButton: '[data-testid="dm-new-chat-button"]',
   searchBar: '[data-testid="dm-search-bar"]',
   listLoadingFooter: '[data-testid="dm-conversation-list-loading-footer"]',

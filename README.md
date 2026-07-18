@@ -51,14 +51,16 @@ in `chrome://extensions` and reload the X tab. (`npm run dev` auto-rebuilds.)
 | Key | Action |
 |---|---|
 | `j` / `k` (↓/↑) | Move to next / previous conversation **and open it** |
-| `Enter` / `o` | Open selected conversation |
+| `Enter` / `o` | Open selected conversation · `Enter` accepts an open message request |
 | `r` | Reply — focus the composer (moving never auto-focuses it) |
 | `⌘K` / `Ctrl+K` | Command palette |
 | `⌘J` / `Ctrl+J` | Quick switcher (fuzzy jump) |
 | `/` | Search |
 | `c` | New chat |
 | `Enter` | Send (in composer) · `Shift+Enter` newline |
-| `1` / `2` | Inbox filter / Message requests |
+| `Tab` / `⇧Tab` | Cycle inbox filter (All / Unread / Direct / Groups) |
+| `q` | Message requests (`Esc` goes back) |
+| `p` | Pin / unpin the selected conversation |
 | `g g` / `G` | Top / bottom of list |
 | `?` | Command palette (help) |
 
