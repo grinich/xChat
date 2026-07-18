@@ -17,6 +17,11 @@ export default defineConfig({
     // version comes from package.json (WXT default) so a release tag drives it — see the
     // "Set version from tag" step in .github/workflows/release.yml.
     host_permissions: ['https://x.com/*'],
+    // Pin the extension ID to the Chrome Web Store item so unpacked/dev builds load with the
+    // same ID (ibabhioecolanneglccnolncaaanonll). This is the store item's PUBLIC key (base64
+    // DER) — public by design (it ships in every .crx). The store still signs releases with its
+    // private key; this only makes local builds' derived ID match.
+    key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuChTVIHWVg0mfgfG1f/Yn1F+a17DCHkZAMcPJ0dBnMJjuCf1EHbM/ZDJhpNB/j5wBDV6GxxR43mSTAWct+uJ05PxgyXuCB7E4lKO2ZvSRV8owe0QbLvQTREQZDqbwISbdOHD0ji8Uct3GSTFL78iE4Kp17X2z3/F/h/Jr8eFlykPhVlWguzqsVxkdWB//prhBVADxuCOMNqmwuMoWpn+VGz/a/dPN2oYUTsw4UYUOdaTwaWny3QmkDP+AjC+IpjxWiTTi5T5lks7ueM81kyRZpjy4mnc9mDp54E66TLZ8ExmPJgpWx/lzjvQPGvNB9c8/IbWKZPvuyiHmkaa/rz73QIDAQAB',
     // Clickable toolbar icon (no popup) — background.ts handles onClicked to open X DMs.
     action: {
       default_title: 'Open X DMs (xChat)',
