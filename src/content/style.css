@@ -127,12 +127,24 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] *:focus-visible,
 html.xchat-fullscreen [data-testid='dm-inbox-panel'] *:focus-within {
   outline: none !important;
 }
+/* X's header buttons (requests/back/new chat) carry a focus-visible ring — a BOX-SHADOW, so
+ * the outline suppression above doesn't catch it. It flashes blue when a key is pressed while
+ * a just-clicked button still holds focus (Chrome promotes :focus to :focus-visible on
+ * keyboard input). Kill ring shadows on focused buttons/anchors only — the li divider and
+ * selection shadows live on non-focusable elements, so they're untouched. */
+html.xchat-fullscreen [data-testid='dm-container'] button:focus,
+html.xchat-fullscreen [data-testid='dm-container'] button:focus-visible,
+html.xchat-fullscreen [data-testid='dm-container'] a:focus,
+html.xchat-fullscreen [data-testid='dm-container'] a:focus-visible {
+  box-shadow: none !important;
+}
 
 /* ---- Suppress X's own "active conversation" grey highlight (.bg-gray-0). It sits on an
  * inner element and would otherwise cover our selection AND lag behind j/k (updating only
  * when the thread actually opens), creating a second, flashing highlight. Our blue cursor is
  * the single source of truth. ---- */
-html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .bg-gray-0 {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .bg-gray-0,
+html.xchat-fullscreen [data-testid^='dm-message-request-item-'] .bg-gray-0 {
   background: transparent !important;
 }
 
@@ -142,7 +154,8 @@ html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .bg-gray-0 {
  * never aligns with the divider. Instead we drop X's inner divider and put BOTH the divider
  * (an inset box-shadow) and the selection tint on the <li> slot itself — same box, so the
  * selection fills exactly divider-to-divider. Theme-agnostic translucent grey divider. */
-html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .flex-1.flex-col {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .flex-1.flex-col,
+html.xchat-fullscreen [data-testid^='dm-message-request-item-'] .flex-1.flex-col {
   border-bottom: 0 !important;
 }
 html.xchat-fullscreen [data-testid='dm-inbox-panel'] li {
@@ -151,7 +164,8 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] li {
 /* Move X's row hover onto the full <li> slot too (it otherwise fills only the inner content,
  * leaving the padding un-filled). Placed before the selection rule so selection wins on a
  * hovered-selected row. */
-html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .px-4:hover {
+html.xchat-fullscreen [data-testid^='dm-conversation-item-'] .px-4:hover,
+html.xchat-fullscreen [data-testid^='dm-message-request-item-'] .px-4:hover {
   background: transparent !important;
 }
 html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:hover {
@@ -168,7 +182,9 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
 /* Keep the inner boxes transparent so only the <li> tint shows. */
 [data-testid^='dm-conversation-item-'].xchat-selected,
 [data-testid^='dm-conversation-item-'].xchat-selected a,
-[data-testid^='dm-conversation-item-'].xchat-selected .px-4 {
+[data-testid^='dm-conversation-item-'].xchat-selected .px-4,
+[data-testid^='dm-message-request-item-'].xchat-selected,
+[data-testid^='dm-message-request-item-'].xchat-selected .px-4 {
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -187,7 +203,16 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] li:has(.xchat-selected) {
   color: #8899a6;
   font: 500 12px/1 -apple-system, system-ui, sans-serif;
 }
-.xchat-reply-hint kbd {
+/* "esc = back" keycap next to the Message Requests back button. */
+.xchat-esc-hint {
+  display: inline-flex;
+  align-items: center;
+  margin-left: -6px; /* tuck in against the back button despite the header's gap-4 */
+  pointer-events: none;
+  color: #8899a6;
+}
+.xchat-reply-hint kbd,
+.xchat-esc-hint kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;

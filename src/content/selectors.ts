@@ -25,13 +25,17 @@ export const SEL = {
   inboxTitle: '[data-testid="dm-inbox-title"]',
   inboxDropdownTrigger: '[data-testid="dm-inbox-dropdown-trigger"]',
   requestsButton: '[data-testid="dm-inbox-requests-button"]',
+  requestsBackButton: '[data-testid="dm-message-requests-back"]',
   newChatButton: '[data-testid="dm-new-chat-button"]',
   searchBar: '[data-testid="dm-search-bar"]',
   listLoadingFooter: '[data-testid="dm-conversation-list-loading-footer"]',
 
-  // Conversation rows (prefix match; each carries its id)
+  // Conversation rows (prefix match; each carries its id). The inbox tags rows
+  // `dm-conversation-item-*`; the message-requests view tags them `dm-message-request-item-*`.
+  // One selector covers both so selection/switcher work on either list.
   conversationItemPrefix: 'dm-conversation-item-',
-  conversationItems: '[data-testid^="dm-conversation-item-"]',
+  requestItemPrefix: 'dm-message-request-item-',
+  conversationItems: '[data-testid^="dm-conversation-item-"], [data-testid^="dm-message-request-item-"]',
 
   // Messages (prefix match)
   messageList: '[data-testid="dm-message-list"]',

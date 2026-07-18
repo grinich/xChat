@@ -7,6 +7,7 @@ import { openPalette, paletteOpen } from './palette';
 import { openSwitcher, switcherOpen } from './switcher';
 import { requestComposerFocus, hasReplyIntent } from './composer-focus';
 import { select, selectFirst } from './selection';
+import { closeRequests } from './actions';
 import { SEL, dmPresent } from './selectors';
 
 let lastG = 0; // for the `g g` chord
@@ -126,6 +127,9 @@ export function installKeyboard(): void {
           break;
         }
         case 'Escape':
+          // On Message Requests, Esc backs out to the main inbox; the cursor is cleared
+          // either way (after backing out, j/k restarts from the top of the inbox list).
+          if (closeRequests()) e.preventDefault();
           select(null);
           break;
       }

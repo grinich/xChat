@@ -2,7 +2,7 @@
 // we click the elements a user would click and type into the real composer.
 
 import { SEL, $, conversationRows } from './selectors';
-import { convIdFromItemTestid, routeFor, toColon } from '../lib/id-parse';
+import { convIdFromItemTestid, convIdFromPath, routeFor, toColon } from '../lib/id-parse';
 
 /** Find a rendered conversation row by id (colon form). */
 export function rowFor(id: string): HTMLElement | null {
@@ -20,12 +20,20 @@ export function rowFor(id: string): HTMLElement | null {
  *  the anchor's focus outline in CSS. Falls back to the History API only if the row isn't
  *  currently rendered (virtualized off-screen). */
 export function openConversation(id: string): void {
-  const anchor = rowFor(id)?.querySelector('a[href]') as HTMLElement | null;
+  const row = rowFor(id);
+  // Inbox rows are a <div> wrapping the thread <a>; message-request rows ARE the <a>
+  // (their first inner anchor is the sender's profile link — clicking it would leave DMs).
+  const anchor = row?.matches('a[href]') ? row : (row?.querySelector('a[href]') as HTMLElement | null);
   if (anchor) {
     anchor.click();
     return;
   }
-  historyNavigate(routeFor(id));
+  historyNavigate(routeFor(id, onRequestsView()));
+}
+
+/** Are we on the message-requests view (list or an open request thread)? */
+export function onRequestsView(): boolean {
+  return location.pathname.startsWith('/i/chat/requests');
 }
 
 /** SPA navigation that matches how X's own links behave — a router PUSH (no reload, no slide).
@@ -134,6 +142,14 @@ export function openRequests(): void {
   ($(SEL.requestsButton) as HTMLElement | null)?.click();
 }
 
+/** Leave the Message Requests view via its own back button. Returns false when not on it. */
+export function closeRequests(): boolean {
+  const back = $(SEL.requestsBackButton);
+  if (!back) return false;
+  back.click();
+  return true;
+}
+
 export function openInboxFilter(): void {
   ($(SEL.inboxDropdownTrigger) as HTMLElement | null)?.click();
 }
@@ -145,6 +161,5 @@ export function openConversationMenu(): void {
 
 /** The conversation id of the currently open thread, from the URL. */
 export function currentConversationId(): string | null {
-  const m = location.pathname.match(/\/i\/chat\/([^/?#]+)/);
-  return m ? toColon(m[1]) : null;
+  return convIdFromPath(location.pathname);
 }

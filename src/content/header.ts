@@ -7,6 +7,7 @@ import { focusSearch, navigate } from './actions';
 
 const SEARCH_BTN_ID = 'xchat-search-btn';
 const HOME_BTN_ID = 'xchat-home-btn';
+const ESC_HINT_ID = 'xchat-esc-hint';
 const SEARCH_OPEN_CLASS = 'xchat-search-open';
 
 // The X wordmark logo (24x24), used as a home button in the chat header.
@@ -52,6 +53,18 @@ export function applyHeader(): void {
     dropdown.parentElement.insertBefore(btn, dropdown);
   }
 
+  // "esc" keycap next to the Message Requests back button (Esc backs out to the inbox).
+  // X unmounts the requests header when leaving the view, taking the hint with it, so we
+  // only ever need to (re)insert — never remove.
+  const back = $(SEL.requestsBackButton);
+  if (back?.parentElement && !document.getElementById(ESC_HINT_ID)) {
+    const hint = document.createElement('span');
+    hint.id = ESC_HINT_ID;
+    hint.className = 'xchat-esc-hint';
+    hint.setAttribute('aria-hidden', 'true');
+    hint.innerHTML = '<kbd>esc</kbd>';
+    back.after(hint);
+  }
 }
 
 function toggleSearch(): void {
