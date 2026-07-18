@@ -14,6 +14,7 @@ import { selectInitialWhenReady, installClickSync } from './selection';
 import { applyComposerHint } from './composer-hint';
 import { applyHeader } from './header';
 import { installComposerFocusGuard } from './composer-focus';
+import { startUnreadBadge } from './unread';
 
 const LOG = '[xchat]';
 const FULLSCREEN_CLASS = 'xchat-fullscreen';
@@ -90,6 +91,8 @@ export function start(): void {
   // document root, so the moment X mounts the DM header our logo/search inject in the same
   // frame — no waiting for the poll, on first load or SPA nav.
   startObserver();
+  // Mirror X's unread-DM count onto the toolbar badge (runs on any x.com page, not just DMs).
+  startUnreadBadge();
   // Reliability backstop: activates whenever the DM UI shows up, however we got there.
   setInterval(tick, 600);
   tick();

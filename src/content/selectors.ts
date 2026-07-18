@@ -6,6 +6,9 @@ export const SEL = {
   // Layout / shell
   banner: 'header[role="banner"]',
   main: 'main[role="main"]',
+  // X's global nav "Direct Messages" link — present in the DOM on every x.com page (even when
+  // our reskin hides the nav rail). X mounts its unread-DM badge inside it; we read that count.
+  dmNavLink: '[data-testid="AppTabBar_DirectMessage_Link"]',
   primaryColumn: '[data-testid="primaryColumn"]',
   sidebarColumn: '[data-testid="sidebarColumn"]',
 
