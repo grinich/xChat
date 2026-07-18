@@ -17,6 +17,16 @@ export default defineConfig({
     // version comes from package.json (WXT default) so a release tag drives it — see the
     // "Set version from tag" step in .github/workflows/release.yml.
     host_permissions: ['https://x.com/*'],
+    // Clickable toolbar icon (no popup) — background.ts handles onClicked to open X DMs.
+    action: {
+      default_title: 'Open X DMs (xChat)',
+      default_icon: {
+        16: 'icon/16.png',
+        32: 'icon/32.png',
+        48: 'icon/48.png',
+        128: 'icon/128.png',
+      },
+    },
   },
   alias: { '@': srcDir },
   webExt: {
