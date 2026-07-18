@@ -1,5 +1,9 @@
 # xChat
 
+<p align="center">
+  <img src="./docs/screenshot.png" alt="xChat — full-screen, keyboard-first X DMs" width="50%">
+</p>
+
 A fast, full-screen, **keyboard-first layer on top of X (Twitter) Direct Messages** — inspired
 by Superhuman and the `inflow` LinkedIn client. xChat is an in-page Chrome extension: it never
 touches X's API or crypto. X does all the fetching, decryption, realtime, and sending; xChat
