@@ -9,10 +9,15 @@ by Superhuman and the [Inflow](https://github.com/grinich/inflow) LinkedIn clien
 
 - **In-page Chrome extension** — it never touches X's API or crypto. X does all the fetching,
   decryption, realtime, and sending.
-- **Full-screen reskin** of X's DM interface.
-- **Keyboard navigation** — `j`/`k` to move between conversations, reply-on-`r`.
+- **Full-screen reskin** of X's DM interface — instant view switches, no entrance animations.
+- **Keyboard navigation** — `j`/`k` to move between conversations, reply-on-`r`, `Tab` to
+  cycle inbox filters, `p` to pin/unpin.
+- **Message-request triage** — `q` opens requests, `j`/`k` browses them, `Enter` accepts and
+  drops you straight into the reply box, `Esc` backs out.
 - **Command palette** (`⌘K`) and **quick-switcher** (`⌘J`).
 - **Quick search** across your conversations.
+- **Discoverable shortcuts** — small keycap hints on the buttons themselves (`/`, `tab`, `Q`,
+  `C`, `enter`, `esc`), so you learn the keys as you click.
 - **Toolbar button** that jumps straight to your DMs.
 - Because it rides X's own client, **every conversation works — including
   end-to-end-encrypted XChat threads.**
