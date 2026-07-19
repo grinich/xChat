@@ -121,11 +121,24 @@ entirely and use the page tools directly.
 | `xchat_search_conversations` | Fuzzy-search the rendered rows |
 | `xchat_open_conversation` | Open a thread (SPA navigation) |
 | `xchat_read_messages` | Read a thread's messages (sender + time inferred) |
-| `xchat_draft_reply` | Fill the composer without sending |
-| `xchat_send_message` | Fill the composer and send |
+| `xchat_draft_reply` | Fill the composer without sending (leaves the thread open for review) |
+| `xchat_send_message` | Fill the composer and send — works from any x.com page |
 | `xchat_set_inbox_filter` | All / Unread / Direct / Groups |
 | `xchat_toggle_pin` | Pin/unpin via X's own context menu |
 | `xchat_open_requests` / `xchat_close_requests` / `xchat_accept_request` | Message-request triage |
+
+**Sending is verified, never assumed.** `xchat_send_message` reports success
+(`sent: "confirmed"`) only after X clears the composer **and** the sent bubble actually
+appears in the thread; anything else is an explicit error stating the text was left as an
+unsent draft. It re-asserts the text before every submit attempt (X's async draft-restore
+can otherwise swap the content), and escalates through several submit mechanisms because
+no single one reliably triggers X's send handler. If the tab isn't on the DM view, the
+tool opens the thread, sends, and returns the tab to where it was — behind a brief visual
+shield, so the page never visibly changes.
+
+One caveat by design: the tools drive your **real** browser tab. Sends round-trip
+invisibly, but reads/opens genuinely navigate — agent calls made while you're actively
+browsing x.com in that tab can interfere in both directions.
 
 ### Connect a local MCP client (optional bridge)
 

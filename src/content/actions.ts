@@ -84,19 +84,28 @@ export function setComposerText(text: string): boolean {
   return true;
 }
 
-/** Submit the composer (send). Prefer a native form submit; fall back to Enter keypress. */
-export function sendComposer(): boolean {
-  const form = $(SEL.composerForm) as HTMLFormElement | null;
+/** One send mechanism, attempted against the live composer. Callers (the WebMCP send
+ *  tool) escalate through mechanisms and verify each one by watching X clear the
+ *  textarea — none of these can confirm delivery on their own, so this function only
+ *  reports whether the attempt had a present, armed target. (form.requestSubmit() was
+ *  the old approach; X's send handler ignores it, which made "sends" silently no-op.) */
+export type SendAttempt = 'button-click' | 'button-pointer' | 'enter-key';
+
+export function attemptComposerSend(how: SendAttempt): boolean {
   const ta = $(SEL.composerTextarea) as HTMLTextAreaElement | null;
-  if (!ta || !(ta.value && ta.value.trim())) return false;
-  if (form && typeof form.requestSubmit === 'function') {
-    form.requestSubmit();
+  if (!ta || !ta.value.trim()) return false;
+  if (how === 'enter-key') {
+    // X sends on Enter. Synthetic keydowns don't insert text, so a failed attempt
+    // can't corrupt the draft.
+    const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true } as const;
+    ta.dispatchEvent(new KeyboardEvent('keydown', opts));
+    ta.dispatchEvent(new KeyboardEvent('keyup', opts));
     return true;
   }
-  // Fallback: dispatch Enter on the textarea (X sends on Enter).
-  const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true } as const;
-  ta.dispatchEvent(new KeyboardEvent('keydown', opts));
-  ta.dispatchEvent(new KeyboardEvent('keyup', opts));
+  const btn = $(SEL.composerSendButton) as HTMLButtonElement | null;
+  if (!btn || btn.disabled) return false;
+  if (how === 'button-click') btn.click();
+  else synthPointerClick(btn);
   return true;
 }
 

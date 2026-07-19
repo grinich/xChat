@@ -53,6 +53,9 @@ export const SEL = {
   composerForm: '[data-testid="dm-composer-form"]',
   composerInputContainer: '[data-testid="dm-composer-input-container"]',
   composerAttachment: '[data-testid="dm-composer-attachment-button"]',
+  // Send button — only mounted while the composer has text (it swaps in for the voice
+  // button), so "absent" usually means "nothing to send".
+  composerSendButton: '[data-testid="dm-composer-send-button"]',
 } as const;
 
 /** Are we currently on a DM route? (Used to gate activation + the keyboard layer.) */

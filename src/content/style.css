@@ -357,3 +357,11 @@ html.xchat-fullscreen [data-testid='dm-inbox-panel'] .py-2:empty {
 .xchat-home-btn:hover { background: rgba(127, 127, 127, 0.15); }
 .xchat-home-btn:focus,
 .xchat-home-btn:focus-visible { outline: none !important; }
+
+/* Off-DM send shield: while the WebMCP send tool round-trips timeline → thread →
+   timeline, blank the page so the view swap is never visible. Set for at most a few
+   seconds; the JS side always removes it (try/finally + an 8s safety timer), so the
+   page can never be left hidden. */
+html.xchat-nav-shield body {
+  visibility: hidden !important;
+}

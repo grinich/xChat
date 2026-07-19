@@ -11,12 +11,13 @@
 // real composer, so E2E-encrypted threads work like any other.
 
 import '@mcp-b/global';
-import { SEL, $, $all, conversationRows, dmPresent } from '../content/selectors';
+import { SEL, $, $all, conversationRows, dmPresent, isDmRoute } from '../content/selectors';
 import { convIdFromItemTestid, convIdFromPath, routeFor, toColon } from '../lib/id-parse';
 import {
   openConversation,
   setComposerText,
-  sendComposer,
+  attemptComposerSend,
+  type SendAttempt,
   setInboxFilter,
   togglePin,
   openRequests,
@@ -160,11 +161,111 @@ async function ensureConversation(id?: string): Promise<string | null> {
   return waitFor(() => (currentConversationId() === want ? want : null));
 }
 
+// ---------------------------------------------------------------------------
+// Sending. No single mechanism reliably triggers X's send handler from here (the old
+// form.requestSubmit() approach silently no-oped), so we escalate through mechanisms —
+// main-world clicks, isolated-world clicks (via bridge-relay.ts; some X controls only
+// react to that world's events), Enter keydowns — and treat NOTHING as sent until X
+// confirms by clearing the textarea.
+
+let isoSendSeq = 1;
+
+/** Ask the isolated-world content script to attempt one send mechanism. Resolves to
+ *  whether an attempt was made; false on timeout (relay absent, e.g. tools running
+ *  without the dm content script). */
+function isoSend(how: SendAttempt): Promise<boolean> {
+  return new Promise((resolve) => {
+    const id = isoSendSeq++;
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const d = e.data as { xchat?: string; id?: number; attempted?: boolean };
+      if (d?.xchat !== 'iso-send-result' || d.id !== id) return;
+      window.clearTimeout(timer);
+      window.removeEventListener('message', onMsg);
+      resolve(!!d.attempted);
+    };
+    const timer = window.setTimeout(() => {
+      window.removeEventListener('message', onMsg);
+      resolve(false);
+    }, 600);
+    window.addEventListener('message', onMsg);
+    window.postMessage({ xchat: 'iso-send', id, how }, location.origin);
+  });
+}
+
+const SEND_MECHANISMS: Array<{ via: string; run: () => boolean | Promise<boolean> }> = [
+  { via: 'send-button click (main world)', run: () => attemptComposerSend('button-click') },
+  { via: 'send-button pointer sequence (main world)', run: () => attemptComposerSend('button-pointer') },
+  { via: 'send-button click (isolated world)', run: () => isoSend('button-click') },
+  { via: 'send-button pointer sequence (isolated world)', run: () => isoSend('button-pointer') },
+  { via: 'Enter keydown (main world)', run: () => attemptComposerSend('enter-key') },
+  { via: 'Enter keydown (isolated world)', run: () => isoSend('enter-key') },
+];
+
+const normalized = (s: string): string => s.replace(/\s+/g, ' ').trim();
+
+/** Is a sent bubble with exactly this text visible in the open thread (from us)? */
+function sentBubbleVisible(text: string): boolean {
+  const want = normalized(text);
+  return readOpenMessages(10).some((m) => m.from !== 'them' && normalized(m.text) === want);
+}
+
+/** Put `text` in the composer and make sure it STAYS there. X restores its own saved
+ *  per-thread draft asynchronously after the composer mounts, silently overwriting
+ *  programmatic text — caught live when a send delivered a stale draft instead of the
+ *  requested message. Re-assert until the value sticks. */
+async function setComposerTextStable(ta: HTMLTextAreaElement, text: string): Promise<boolean> {
+  for (let i = 0; i < 3; i++) {
+    if (!setComposerText(text)) return false;
+    await sleep(250);
+    if (normalized(ta.value) === normalized(text)) return true;
+  }
+  return normalized(ta.value) === normalized(text);
+}
+
+type SendOutcome = { via: string; verified: boolean } | null;
+
+/** Escalate through send mechanisms until X accepts (clears the textarea), re-asserting
+ *  the intended text before every attempt (see setComposerTextStable). `verified` means
+ *  the sent bubble also appeared in the thread — the only outcome that counts as
+ *  delivered. Null: nothing was accepted; the text is still a draft. */
+async function sendAndConfirm(ta: HTMLTextAreaElement, text: string): Promise<SendOutcome> {
+  for (const m of SEND_MECHANISMS) {
+    if (normalized(ta.value) !== normalized(text) && !(await setComposerTextStable(ta, text))) {
+      return null; // can't hold the text in the composer — do not fire a send at unknown content
+    }
+    if (!(await m.run())) continue;
+    if (await waitFor(() => (ta.value.trim() === '' ? true : null), 15, 100)) {
+      // Freshly-opened E2E-encrypted threads can take several seconds to render the
+      // sent bubble (decryption + mount) — 3s produced a false "ambiguous" live; 8s.
+      const visible = await waitFor(() => (sentBubbleVisible(text) ? true : null), 80, 100);
+      return { via: m.via, verified: !!visible };
+    }
+  }
+  return null;
+}
+
+/** Run an off-DM navigation round-trip behind a page blank (style.css hides <body>
+ *  while the class is set) so the user never sees the timeline swap to a chat thread
+ *  and back. The safety timer guarantees the page can never be left hidden. */
+const NAV_SHIELD_CLASS = 'xchat-nav-shield';
+async function withNavShield<T>(run: () => Promise<T>): Promise<T> {
+  const html = document.documentElement;
+  html.classList.add(NAV_SHIELD_CLASS);
+  const safety = window.setTimeout(() => html.classList.remove(NAV_SHIELD_CLASS), 8000);
+  try {
+    return await run();
+  } finally {
+    window.clearTimeout(safety);
+    html.classList.remove(NAV_SHIELD_CLASS);
+  }
+}
+
 function state(): Record<string, unknown> {
   return {
     url: location.href,
     dmUiPresent: dmPresent(),
-    view: onRequestsView() ? 'requests' : 'inbox',
+    view: !isDmRoute() ? 'none' : onRequestsView() ? 'requests' : 'inbox',
     openConversationId: convIdFromPath(location.pathname),
     unreadCount: readUnread().count,
   };
@@ -324,9 +425,9 @@ export function registerXchatTools(): void {
     execute: async (args) => {
       const id = await ensureConversation(args.conversation_id as string | undefined);
       if (!id) return fail('No conversation open — pass conversation_id or open one first.');
-      const ready = await waitFor(() => $(SEL.composerTextarea));
-      if (!ready || !setComposerText(String(args.text))) {
-        return fail('Composer not available in this thread (it may be an unaccepted message request).');
+      const ta = await waitFor(() => $(SEL.composerTextarea) as HTMLTextAreaElement | null);
+      if (!ta || !(await setComposerTextStable(ta, String(args.text)))) {
+        return fail('Composer not available or would not hold the text (it may be an unaccepted message request).');
       }
       return ok({ drafted: true, conversationId: id });
     },
@@ -335,24 +436,56 @@ export function registerXchatTools(): void {
   tool({
     name: 'xchat_send_message',
     description:
-      'Send a DM: opens the conversation (if conversation_id is given), types the text into X\'s real composer, and submits it. Sending goes through X\'s own client, so E2E-encrypted threads work too.',
+      'Send a DM: opens the conversation (if conversation_id is given), types the text into X\'s real composer, and submits it. Sending goes through X\'s own client, so E2E-encrypted threads work too. Works from any x.com page: when the tab isn\'t on the DM view, the thread is opened, the message sent, and the tab returned to where it was (invisibly). Success is ONLY {sent: "confirmed"} — an error result means the text was left as an unsent draft.',
     inputSchema: {
       type: 'object',
       properties: { text: { type: 'string', description: 'Message text to send.' }, ...idProp },
       required: ['text'],
     },
     execute: async (args) => {
-      const id = await ensureConversation(args.conversation_id as string | undefined);
-      if (!id) return fail('No conversation open — pass conversation_id or open one first.');
-      const ta = await waitFor(() => $(SEL.composerTextarea) as HTMLTextAreaElement | null);
-      if (!ta || !setComposerText(String(args.text))) {
-        return fail('Composer not available in this thread (it may be an unaccepted message request).');
+      const requestedId = args.conversation_id as string | undefined;
+      const offDm = !isDmRoute();
+      if (offDm && !requestedId) {
+        return fail('Tab is not on the DM view and no conversation_id was given — pass one to send from here.');
       }
-      await sleep(50); // let React commit the value before submitting
-      if (!sendComposer()) return fail('Send failed — composer text did not register.');
-      // X clears the textarea when the send is accepted by the client.
-      const cleared = await waitFor(() => (ta.value.trim() === '' ? true : null), 20, 100);
-      return ok({ sent: cleared ? 'confirmed' : 'submitted', conversationId: id });
+
+      const doSend = async (): Promise<ToolResult> => {
+        const id = await ensureConversation(requestedId);
+        if (!id) {
+          return fail(
+            requestedId
+              ? `Could not open conversation ${requestedId} (navigation did not land on it).`
+              : 'No conversation open — pass conversation_id or open one first.',
+          );
+        }
+        const ta = await waitFor(() => $(SEL.composerTextarea) as HTMLTextAreaElement | null);
+        if (!ta || !(await setComposerTextStable(ta, String(args.text)))) {
+          return fail('Composer not available or would not hold the text (unaccepted request? X draft interference). Nothing was sent.');
+        }
+        const outcome = await sendAndConfirm(ta, String(args.text));
+        if (!outcome) {
+          return fail(
+            'Send did NOT go through — X never accepted the submit. The text is sitting in the composer as an unsent draft. Do not report this message as sent.',
+          );
+        }
+        if (!outcome.verified) {
+          return fail(
+            `Ambiguous: X accepted a send (via ${outcome.via}) but the message did not appear in the thread within 3s. Verify with xchat_read_messages before reporting it sent.`,
+          );
+        }
+        return ok({ sent: 'confirmed', via: outcome.via, conversationId: id });
+      };
+
+      if (!offDm) return doSend();
+      // Off the DM view: round-trip thread → send → back behind a visual shield so the
+      // user's timeline never visibly changes. (Draft tool intentionally does NOT do
+      // this — a draft should leave the thread open for human review.)
+      return withNavShield(async () => {
+        const result = await doSend();
+        history.back();
+        await waitFor(() => (!isDmRoute() ? true : null), 20, 100);
+        return result;
+      });
     },
   });
 
