@@ -10,8 +10,10 @@ X does all data/network/crypto/realtime/sending. xChat only **reads the rendered
 attempts to decrypt.
 
 ## Layout
-- `entrypoints/dm.content.ts` — content-script entry (matches `x.com/i/chat*`, `/messages*`);
-  imports the reskin CSS (manifest-injected) and calls `boot()`.
+- `entrypoints/dm.content.ts` — content-script entry. Matches ALL of `x.com/*` (content
+  scripts don't re-inject on SPA navigation, so it must); `boot()` route-gates the DM
+  enhancer, while the unread badge + bridge relay run on every page. Imports the reskin
+  CSS (manifest-injected).
 - `entrypoints/webmcp.content.ts` — MAIN-world entry; registers the WebMCP tools
   (`src/webmcp/tools.ts`) on `document.modelContext` so AI agents can drive DMs.
 - `entrypoints/background.ts` — toolbar action, unread badge, and the optional bridge's

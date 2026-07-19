@@ -117,8 +117,8 @@ entirely and use the page tools directly.
 | Tool | What it does |
 |---|---|
 | `xchat_state` | Where am I: view, open conversation, unread count |
-| `xchat_list_conversations` | Rendered inbox/requests rows (id, title, snippet) |
-| `xchat_search_conversations` | Fuzzy-search the rendered rows |
+| `xchat_list_conversations` | Rendered inbox/requests rows (id, title, snippet) — works from any x.com page |
+| `xchat_search_conversations` | Fuzzy-search the rendered rows — works from any x.com page |
 | `xchat_open_conversation` | Open a thread (SPA navigation) |
 | `xchat_read_messages` | Read a thread's messages (sender + time inferred) |
 | `xchat_draft_reply` | Fill the composer without sending (leaves the thread open for review) |
@@ -136,9 +136,13 @@ no single one reliably triggers X's send handler. If the tab isn't on the DM vie
 tool opens the thread, sends, and returns the tab to where it was — behind a brief visual
 shield, so the page never visibly changes.
 
-One caveat by design: the tools drive your **real** browser tab. Sends round-trip
-invisibly, but reads/opens genuinely navigate — agent calls made while you're actively
-browsing x.com in that tab can interfere in both directions.
+The tools work from **any x.com page** — list/search/read/send hop to the DM view behind
+an invisible shield and put the tab back where it was. Two caveats by design: the tools
+drive your **real** browser tab (`xchat_open_conversation` navigates on purpose, and
+agent calls made while you're actively browsing x.com in that tab can interfere in both
+directions), and the tab's window must be **visible on screen** — Chrome doesn't render
+hidden windows, so X never mounts message content there; the tools detect this and say
+so rather than timing out.
 
 ### Connect a local MCP client (optional bridge)
 
@@ -153,9 +157,14 @@ claude mcp add --scope user xchat -- node /absolute/path/to/xchat/bridge/dist/cl
 
 Open an x.com tab in Chrome (with xChat installed) and the `xchat_*` tools appear in
 Claude Code — "read my unread DMs and draft replies" just works. If the tools are
-missing, call `xchat_bridge_status` to see why (usually: no x.com tab open). One gotcha:
-after updating/reloading the extension, reload any open x.com tabs too — extension
-reloads orphan the content scripts that relay to the bridge.
+missing, call `xchat_bridge_status` to see why (usually: no x.com tab open). Two gotchas:
+
+- **Keep the x.com window visible on screen** (it doesn't need focus). Chrome skips
+  rendering for hidden/minimized windows, so X never mounts message content there —
+  reads come back with an explicit "bring the window to the foreground" error instead
+  of data. Inbox listing/search still work hidden; reading and confirming sends don't.
+- After updating/reloading the extension, reload any open x.com tabs too — extension
+  reloads orphan the content scripts that relay to the bridge.
 
 You can also poke the tools directly from DevTools on x.com, no bridge required:
 
