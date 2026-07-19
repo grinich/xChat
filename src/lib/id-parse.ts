@@ -5,8 +5,8 @@
 // (colon form, e.g. "12345678:87654321"). The SPA route for a thread uses the dash
 // form: `/i/chat/<A>-<B>` for inbox threads, `/i/chat/requests/<A>-<B>` for request
 // threads. For 1:1 chats A/B are the two user ids; for group DMs the id is a single
-// number. We treat the id as an opaque token and only translate the separator between
-// the two representations.
+// `g`-prefixed number (e.g. "g2078579589736210656", no colon/dash). We treat the id as
+// an opaque token and only translate the separator between the two representations.
 
 const ITEM_PREFIX = 'dm-conversation-item-';
 const REQUEST_ITEM_PREFIX = 'dm-message-request-item-';
@@ -40,9 +40,10 @@ export function routeFor(id: string, requests = false): string {
 
 /** Conversation id (colon form) from an `/i/chat/...` pathname, or null. Handles both
  *  `/i/chat/<id>` and `/i/chat/requests/<id>`, and rejects non-id segments so bare views
- *  like `/i/chat/requests` or `/i/chat/settings` don't parse as a conversation. */
+ *  like `/i/chat/requests` or `/i/chat/settings` don't parse as a conversation. Group
+ *  threads use a `g`-prefixed single number (`/i/chat/g2078…`). */
 export function convIdFromPath(pathname: string): string | null {
-  const m = pathname.match(/\/i\/chat\/(?:requests\/)?(\d+(?:-\d+)?)(?:[/?#]|$)/);
+  const m = pathname.match(/\/i\/chat\/(?:requests\/)?(g?\d+(?:-\d+)?)(?:[/?#]|$)/);
   return m ? toColon(m[1]) : null;
 }
 

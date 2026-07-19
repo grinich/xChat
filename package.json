@@ -30,5 +30,8 @@
     "esbuild@0.21.5": true,
     "esbuild@0.27.7": true,
     "spawn-sync@1.0.15": true
+  },
+  "dependencies": {
+    "@mcp-b/global": "^4.0.0"
   }
 }

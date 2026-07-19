@@ -11,8 +11,9 @@ import { SEL, $ } from './selectors';
 
 let last = -1; // last reported numeric count, to dedupe messages
 
-/** Read X's unread-DM count from its nav link. Returns count -1 when we can't read it. */
-function readUnread(): { count: number; text: string } {
+/** Read X's unread-DM count from its nav link. Returns count -1 when we can't read it.
+ *  (Also consumed by the WebMCP tools — src/webmcp/tools.ts.) */
+export function readUnread(): { count: number; text: string } {
   const link = $(SEL.dmNavLink);
   if (!link) return { count: -1, text: '' };
   // The count is a small numeric badge inside the link. Match the leaf element whose text is a

@@ -15,6 +15,7 @@ import { applyComposerHint } from './composer-hint';
 import { applyHeader } from './header';
 import { installComposerFocusGuard } from './composer-focus';
 import { startUnreadBadge } from './unread';
+import { startBridgeRelay } from './bridge-relay';
 
 const LOG = '[xchat]';
 const FULLSCREEN_CLASS = 'xchat-fullscreen';
@@ -93,6 +94,8 @@ export function start(): void {
   startObserver();
   // Mirror X's unread-DM count onto the toolbar badge (runs on any x.com page, not just DMs).
   startUnreadBadge();
+  // Relay for the optional local MCP bridge (no-op cost when the bridge isn't running).
+  startBridgeRelay();
   // Reliability backstop: activates whenever the DM UI shows up, however we got there.
   setInterval(tick, 600);
   tick();

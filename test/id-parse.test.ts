@@ -45,6 +45,15 @@ describe('id-parse', () => {
     expect(convIdFromPath('/messages')).toBeNull();
   });
 
+  it('parses g-prefixed group ids (routes and testids)', () => {
+    expect(convIdFromPath('/i/chat/g2078579589736210656')).toBe('g2078579589736210656');
+    expect(convIdFromPath('/i/chat/requests/g2078579589736210656')).toBe('g2078579589736210656');
+    expect(convIdFromItemTestid('dm-conversation-item-g2078579589736210656')).toBe(
+      'g2078579589736210656',
+    );
+    expect(routeFor('g2078579589736210656')).toBe('/i/chat/g2078579589736210656');
+  });
+
   it('extracts message uuid but not from message-text-', () => {
     expect(msgIdFromTestid('message-d8590c25-c2d4-4acb-b832-2d1ddc028f42')).toBe(
       'd8590c25-c2d4-4acb-b832-2d1ddc028f42',

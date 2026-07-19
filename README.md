@@ -19,6 +19,9 @@ by Superhuman and the [Inflow](https://github.com/grinich/inflow) LinkedIn clien
 - **Discoverable shortcuts** — small keycap hints on the buttons themselves (`/`, `tab`, `Q`,
   `C`, `enter`, `esc`), so you learn the keys as you click.
 - **Toolbar button** that jumps straight to your DMs.
+- **Experimental: agent-scriptable via [WebMCP](https://webmachinelearning.github.io/webmcp/)** —
+  AI agents like Claude can list, read, search, and reply to your DMs through typed tools
+  instead of screen-scraping ([details below](#ai-agents--webmcp-experimental)).
 - Because it rides X's own client, **every conversation works — including
   end-to-end-encrypted XChat threads.**
 
@@ -72,6 +75,81 @@ in `chrome://extensions` and reload the X tab. (`npm run dev` auto-rebuilds.)
 Every shortcut maps to real X DM functionality — nothing is faked. (X DMs have no
 archive/star/snooze, so xChat doesn't pretend to; features that would silently no-op were
 removed.)
+
+## AI agents & WebMCP (experimental)
+
+xChat registers [WebMCP](https://webmachinelearning.github.io/webmcp/) tools on x.com
+(`document.modelContext`, via [`@mcp-b/global`](https://www.npmjs.com/package/@mcp-b/global)),
+so an AI agent can drive your DMs through typed tool calls instead of screen-scraping —
+list conversations, read a thread, search, open, draft, send, pin, triage requests. The
+tools wrap the same DOM layer as the keyboard shortcuts: X's own client still does all
+fetching/crypto/sending, so E2E-encrypted threads work like any other.
+
+WebMCP is an emerging W3C proposal (Chrome support is in origin trial), so consider this
+whole surface **experimental** — the tool layer works today, but the standard and the
+ways agents connect to it are still moving.
+
+### How it works
+
+X never sees an API call. A MAIN-world content script registers the tools on the page;
+each tool reads the rendered DOM or drives X's own controls (the same `selectors.ts` /
+`actions.ts` used by the keyboard layer). For agents outside the browser, the optional
+`xchat-mcp` bridge relays MCP over a localhost-only WebSocket:
+
+```
+Claude Code / any MCP client
+   │  stdio (MCP)
+xchat-mcp  (bridge/ — localhost-only WebSocket server, no credentials, no X access)
+   ▲  ws://127.0.0.1:9553 (extension dials OUT; nothing listens in the browser)
+xChat background worker
+   ▲  runtime Port
+content-script relay
+   ▲  postMessage
+MAIN-world WebMCP tools  →  X's rendered DOM & controls
+```
+
+Everything between your MCP client and the page is a dumb pipe: tool calls and results
+pass through verbatim, the bridge holds no state, and when it isn't running the extension
+does nothing but one quiet localhost dial with backoff. In-browser agents that speak
+WebMCP natively (or via bridges like [MCP-B](https://mcp-b.ai)) can skip the bridge
+entirely and use the page tools directly.
+
+| Tool | What it does |
+|---|---|
+| `xchat_state` | Where am I: view, open conversation, unread count |
+| `xchat_list_conversations` | Rendered inbox/requests rows (id, title, snippet) |
+| `xchat_search_conversations` | Fuzzy-search the rendered rows |
+| `xchat_open_conversation` | Open a thread (SPA navigation) |
+| `xchat_read_messages` | Read a thread's messages (sender + time inferred) |
+| `xchat_draft_reply` | Fill the composer without sending |
+| `xchat_send_message` | Fill the composer and send |
+| `xchat_set_inbox_filter` | All / Unread / Direct / Groups |
+| `xchat_toggle_pin` | Pin/unpin via X's own context menu |
+| `xchat_open_requests` / `xchat_close_requests` / `xchat_accept_request` | Message-request triage |
+
+### Connect a local MCP client (optional bridge)
+
+xChat ships its own tiny bridge — [`bridge/`](./bridge) (`xchat-mcp`), a stdio MCP server
+that the extension connects out to over a localhost-only WebSocket. No extra browser
+extensions, no third-party relays:
+
+```bash
+cd bridge && npm install && npm run build
+claude mcp add --scope user xchat -- node /absolute/path/to/xchat/bridge/dist/cli.js
+```
+
+Open an x.com tab in Chrome (with xChat installed) and the `xchat_*` tools appear in
+Claude Code — "read my unread DMs and draft replies" just works. If the tools are
+missing, call `xchat_bridge_status` to see why (usually: no x.com tab open). One gotcha:
+after updating/reloading the extension, reload any open x.com tabs too — extension
+reloads orphan the content scripts that relay to the bridge.
+
+You can also poke the tools directly from DevTools on x.com, no bridge required:
+
+```js
+navigator.modelContextTesting.listTools()
+await navigator.modelContextTesting.executeTool('xchat_state', '{}')
+```
 
 ## How it holds up when X changes its UI
 
