@@ -86,7 +86,7 @@ function callExtension(name: string, args: Record<string, unknown>): Promise<Cal
 // builds) — so an exact origin check shuts out every other local process that could
 // otherwise read/send DMs by impersonating the extension. Forks with a different id can
 // pass --allow-origin chrome-extension://<their-id> (or XCHAT_MCP_ALLOW_ORIGIN).
-const XCHAT_EXTENSION_ORIGIN = 'chrome-extension://ibabhioecolanneglccnolncaaanonll';
+const XCHAT_EXTENSION_ORIGIN = 'chrome-extension://oaejnakkgghcgpekgdoffnpobkhnmlfm';
 const allowedOrigins = new Set([
   XCHAT_EXTENSION_ORIGIN,
   ...(argValue('--allow-origin') ?? process.env.XCHAT_MCP_ALLOW_ORIGIN ?? '').split(',').filter(Boolean),
