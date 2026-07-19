@@ -191,7 +191,7 @@ function withSilentMenus(run: (done: () => void) => void): void {
     poll();
   };
   run(done);
-  setTimeout(done, 1500);
+  setTimeout(done, 2500);
 }
 
 /** Dismiss any open popover menu (radix closes on Escape). */
@@ -228,57 +228,153 @@ export function setInboxFilter(filter: InboxFilter): void {
 }
 
 /** Toggle pin on a conversation by driving X's row context menu (right-click →
- *  "Pin conversation" / "Unpin conversation"). The menu is opened invisibly and its items
- *  carry no testids, so the pin entry is matched by label ("Unpin" has no word boundary
- *  before "pin" — don't add \b). Two hard-won details: the contextmenu handler lives on an
- *  INNER element of the row (dispatching on the row itself does nothing), and the menu
- *  reacts to PointerEvents with a real pointerType, not bare MouseEvents. Returns false if
- *  the row isn't rendered. */
+ *  "Pin conversation" / "Unpin conversation"). The menu opens for any MOUNTED row — even one
+ *  scrolled off-screen — so no scrolling is needed unless virtualization has unmounted the
+ *  row entirely. In that case we hunt for it by paging the list with the inbox visually
+ *  hidden, then restore the scroll position before unhiding, so the user never sees the
+ *  list move. Every terminal outcome shows a toast except the row-has-no-pin-entry bail
+ *  (message requests). Returns false only when there's no id. */
 export function togglePin(id: string | null): boolean {
-  const row = id ? rowFor(id) : null;
-  if (!row) return false;
+  if (!id) return false;
+  const row = rowFor(id);
+  if (row) {
+    pinViaRowMenu(row);
+    return true;
+  }
+  // Row not mounted (virtualized out): page through the list from the top until it renders.
+  const scroller = inboxScroller();
+  if (!scroller) {
+    toast('Conversation not found in the list', undefined, 2400, 'top');
+    return true;
+  }
+  const restoreTop = scroller.scrollTop;
+  const prevOpacity = scroller.style.opacity;
+  const cleanup = () => {
+    scroller.scrollTop = restoreTop;
+    scroller.style.opacity = prevOpacity;
+  };
+  // Hide the list while we page it — the hunt takes ~100-400ms and the scroll churn would
+  // otherwise be visible. Opacity (not visibility/display) so layout and the virtualizer's
+  // scroll handling keep working. A safety timer guarantees we never leave it hidden.
+  scroller.style.opacity = '0';
+  const safety = window.setTimeout(cleanup, 4000);
+  let pages = 30; // safety cap — the bottom of the list lazy-loads forever
+  scroller.scrollTop = 0;
+  const hunt = () => {
+    const found = rowFor(id);
+    if (found) {
+      pinViaRowMenu(found, () => {
+        window.clearTimeout(safety);
+        cleanup();
+      });
+      return;
+    }
+    const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
+    if (atBottom || --pages <= 0) {
+      window.clearTimeout(safety);
+      cleanup();
+      toast('Conversation not found in the list', undefined, 2400, 'top');
+      return;
+    }
+    scroller.scrollTop += scroller.clientHeight;
+    setTimeout(hunt, 50); // give virtualization a beat to mount the next page of rows
+  };
+  setTimeout(hunt, 50);
+  return true;
+}
+
+/** The inbox list's scroll container: nearest scrollable ancestor of a rendered row. */
+function inboxScroller(): HTMLElement | null {
+  let el = conversationRows()[0]?.parentElement ?? null;
+  for (; el && el !== document.body; el = el.parentElement) {
+    if (el.scrollHeight > el.clientHeight + 1) return el;
+  }
+  return null;
+}
+
+/** Where X's contextmenu handler for a row actually lives, best guess first. Verified live:
+ *  it's on the row-body <div> INSIDE the thread <a> (`row > a > div`) — dispatching on the
+ *  <a> itself does nothing (the event starts above the handler and never bubbles through
+ *  it), and the event coordinates are irrelevant, which is why off-screen rows work. The
+ *  elementFromPoint hit is kept as the first candidate for visible rows in case X moves
+ *  the handler deeper. */
+function pinMenuTargets(row: HTMLElement): HTMLElement[] {
   const r = row.getBoundingClientRect();
-  const cx = r.left + r.width / 2;
-  const cy = r.top + r.height / 2;
-  const inner = document.elementFromPoint(cx, cy);
-  const target = row.contains(inner) && inner ? inner : (row.querySelector('a, div') ?? row);
-  const base = { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, pointerId: 1, pointerType: 'mouse', isPrimary: true } as const;
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  const candidates = [
+    row.contains(hit) ? (hit as HTMLElement) : null,
+    row.querySelector<HTMLElement>(':scope > a > div'),
+    row.querySelector<HTMLElement>('a > div'),
+    row.querySelector<HTMLElement>(':scope > div'),
+    row,
+  ];
+  return [...new Set(candidates.filter((el): el is HTMLElement => !!el))];
+}
+
+/** Open a (mounted) row's context menu invisibly and click its pin/unpin entry. The menu
+ *  items carry no testids, so the pin entry is matched by label ("Unpin" has no word
+ *  boundary before "pin" — don't add \b). The menu reacts to PointerEvents with a real
+ *  pointerType, not bare MouseEvents. Candidate targets are tried in turn until one opens
+ *  the menu; a menu that opens WITHOUT a pin entry (message requests) ends the attempt.
+ *  `after` runs once the interaction settles (success or bail). */
+function pinViaRowMenu(row: HTMLElement, after?: () => void): void {
   withSilentMenus((done) => {
-    target.dispatchEvent(new PointerEvent('pointerdown', { ...base, button: 2, buttons: 2 }));
-    target.dispatchEvent(new MouseEvent('mousedown', { ...base, button: 2, buttons: 2 }));
-    target.dispatchEvent(new PointerEvent('pointerup', { ...base, button: 2, buttons: 0 }));
-    target.dispatchEvent(new MouseEvent('contextmenu', { ...base, button: 2 }));
-    let tries = 10;
-    const tick = () => {
-      const pinItem = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((el) =>
-        /pin conversation/i.test(el.textContent ?? ''),
-      );
-      if (pinItem) {
-        // Read the label BEFORE clicking — it tells us which way the toggle went.
-        const unpinning = /^\s*unpin/i.test(pinItem.textContent ?? '');
-        const ir = pinItem.getBoundingClientRect();
-        const b = { ...base, clientX: ir.left + 24, clientY: ir.top + ir.height / 2 };
-        pinItem.dispatchEvent(new PointerEvent('pointermove', b));
-        pinItem.dispatchEvent(new PointerEvent('pointerdown', { ...b, button: 0, buttons: 1 }));
-        pinItem.dispatchEvent(new MouseEvent('mousedown', { ...b, button: 0, buttons: 1 }));
-        pinItem.dispatchEvent(new PointerEvent('pointerup', { ...b, button: 0, buttons: 0 }));
-        pinItem.dispatchEvent(new MouseEvent('mouseup', { ...b, button: 0, buttons: 0 }));
-        pinItem.dispatchEvent(new MouseEvent('click', { ...b, button: 0, detail: 1 }));
-        toast(unpinning ? 'Unpinned conversation' : 'Pinned conversation', undefined, 1600, 'top');
-        done();
+    const finish = () => {
+      done();
+      after?.();
+    };
+    const r = row.getBoundingClientRect();
+    const base = { bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerId: 1, pointerType: 'mouse', isPrimary: true } as const;
+    const candidates = pinMenuTargets(row);
+    let ci = 0;
+    const attempt = () => {
+      const target = candidates[ci++];
+      if (!target) {
+        toast("Couldn't open the conversation menu", undefined, 2400, 'top');
+        finish();
         return;
       }
-      if (--tries > 0) {
-        setTimeout(tick, 50);
-      } else {
-        // Menu opened but no pin entry (or never opened) — close and bail quietly.
-        closeAnyMenu();
-        done();
-      }
+      target.dispatchEvent(new PointerEvent('pointerdown', { ...base, button: 2, buttons: 2 }));
+      target.dispatchEvent(new MouseEvent('mousedown', { ...base, button: 2, buttons: 2 }));
+      target.dispatchEvent(new PointerEvent('pointerup', { ...base, button: 2, buttons: 0 }));
+      target.dispatchEvent(new MouseEvent('contextmenu', { ...base, button: 2 }));
+      let tries = 6;
+      const tick = () => {
+        const pinItem = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((el) =>
+          /pin conversation/i.test(el.textContent ?? ''),
+        );
+        if (pinItem) {
+          // Read the label BEFORE clicking — it tells us which way the toggle went.
+          const unpinning = /^\s*unpin/i.test(pinItem.textContent ?? '');
+          const ir = pinItem.getBoundingClientRect();
+          const b = { ...base, clientX: ir.left + 24, clientY: ir.top + ir.height / 2 };
+          pinItem.dispatchEvent(new PointerEvent('pointermove', b));
+          pinItem.dispatchEvent(new PointerEvent('pointerdown', { ...b, button: 0, buttons: 1 }));
+          pinItem.dispatchEvent(new MouseEvent('mousedown', { ...b, button: 0, buttons: 1 }));
+          pinItem.dispatchEvent(new PointerEvent('pointerup', { ...b, button: 0, buttons: 0 }));
+          pinItem.dispatchEvent(new MouseEvent('mouseup', { ...b, button: 0, buttons: 0 }));
+          pinItem.dispatchEvent(new MouseEvent('click', { ...b, button: 0, detail: 1 }));
+          toast(unpinning ? 'Unpinned conversation' : 'Pinned conversation', undefined, 1600, 'top');
+          finish();
+          return;
+        }
+        if (--tries > 0) {
+          setTimeout(tick, 50);
+          return;
+        }
+        if (document.querySelector('[role="menu"]')) {
+          // Menu opened but has no pin entry (e.g. a message request) — close and bail.
+          closeAnyMenu();
+          finish();
+        } else {
+          // This target didn't own the handler; try the next candidate.
+          attempt();
+        }
+      };
+      setTimeout(tick, 50);
     };
-    setTimeout(tick, 50);
+    attempt();
   });
-  return true;
 }
 
 const FILTER_ORDER: InboxFilter[] = ['all', 'unread', 'oneonone', 'groups'];
