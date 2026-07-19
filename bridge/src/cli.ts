@@ -80,7 +80,27 @@ function callExtension(name: string, args: Record<string, unknown>): Promise<Cal
   });
 }
 
-const wss = new WebSocketServer({ host: '127.0.0.1', port: PORT });
+// Only the xChat extension may connect. Browsers stamp WebSocket upgrades from an
+// extension's service worker with `Origin: chrome-extension://<id>`, and xChat's id is
+// pinned via the `key` in wxt.config.ts (identical for store installs and unpacked dev
+// builds) — so an exact origin check shuts out every other local process that could
+// otherwise read/send DMs by impersonating the extension. Forks with a different id can
+// pass --allow-origin chrome-extension://<their-id> (or XCHAT_MCP_ALLOW_ORIGIN).
+const XCHAT_EXTENSION_ORIGIN = 'chrome-extension://ibabhioecolanneglccnolncaaanonll';
+const allowedOrigins = new Set([
+  XCHAT_EXTENSION_ORIGIN,
+  ...(argValue('--allow-origin') ?? process.env.XCHAT_MCP_ALLOW_ORIGIN ?? '').split(',').filter(Boolean),
+]);
+
+const wss = new WebSocketServer({
+  host: '127.0.0.1',
+  port: PORT,
+  verifyClient: ({ origin }: { origin?: string }) => {
+    if (origin && allowedOrigins.has(origin)) return true;
+    log(`rejected connection from origin ${origin || '(none)'} — only the xChat extension may connect (--allow-origin to override)`);
+    return false;
+  },
+});
 
 wss.on('listening', () => log(`listening for the xChat extension on ws://127.0.0.1:${PORT}`));
 wss.on('error', (err: Error & { code?: string }) => {

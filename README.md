@@ -148,7 +148,9 @@ so rather than timing out.
 
 xChat ships its own tiny bridge — [`bridge/`](./bridge) (`xchat-mcp`), a stdio MCP server
 that the extension connects out to over a localhost-only WebSocket. No extra browser
-extensions, no third-party relays:
+extensions, no third-party relays. The bridge only accepts connections whose `Origin` is
+the xChat extension itself (its id is pinned), so no other local process can impersonate
+the extension to read or send DMs (forks: `--allow-origin chrome-extension://<your-id>`):
 
 ```bash
 cd bridge && npm install && npm run build
