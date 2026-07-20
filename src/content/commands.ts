@@ -31,6 +31,13 @@ export const commands: Command[] = [
     run: () => actions.togglePin(selection.getSelectedId() ?? actions.currentConversationId()),
     inPalette: true,
   },
+  {
+    id: 'unread',
+    title: 'Mark as unread',
+    hint: 'u',
+    run: () => actions.markUnread(selection.getSelectedId() ?? actions.currentConversationId()),
+    inPalette: true,
+  },
   { id: 'reply', title: 'Reply (focus composer)', hint: 'r', run: () => requestComposerFocus(), inPalette: true },
   { id: 'search', title: 'Search', hint: '/', run: () => actions.focusSearch(), inPalette: true },
   { id: 'filter-all', title: 'Filter: All', run: () => actions.setInboxFilter('all'), inPalette: true },

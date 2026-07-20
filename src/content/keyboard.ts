@@ -117,6 +117,10 @@ export function installKeyboard(): void {
           e.preventDefault();
           run('pin');
           break;
+        case 'u':
+          e.preventDefault();
+          run('unread');
+          break;
         case '?':
           e.preventDefault();
           openPalette();

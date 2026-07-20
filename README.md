@@ -11,7 +11,7 @@ by Superhuman and the [Inflow](https://github.com/grinich/inflow) LinkedIn clien
   decryption, realtime, and sending.
 - **Full-screen reskin** of X's DM interface — instant view switches, no entrance animations.
 - **Keyboard navigation** — `j`/`k` to move between conversations, reply-on-`r`, `Tab` to
-  cycle inbox filters, `p` to pin/unpin.
+  cycle inbox filters, `p` to pin/unpin, `u` to mark unread.
 - **Message-request triage** — `q` opens requests, `j`/`k` browses them, `Enter` accepts and
   drops you straight into the reply box, `Esc` backs out.
 - **Command palette** (`⌘K`) and **quick-switcher** (`⌘J`).
@@ -69,6 +69,7 @@ in `chrome://extensions` and reload the X tab. (`npm run dev` auto-rebuilds.)
 | `Tab` / `⇧Tab` | Cycle inbox filter (All / Unread / Direct / Groups) |
 | `q` | Message requests (`Esc` goes back) |
 | `p` | Pin / unpin the selected conversation |
+| `u` | Mark the selected conversation as unread |
 | `g g` / `G` | Top / bottom of list |
 | `?` | Command palette (help) |
 
