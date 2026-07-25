@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "compile": "tsc --noEmit",
+    "compile:bridge": "tsc --noEmit -p bridge",
     "postinstall": "wxt prepare",
     "cws-token": "node scripts/cws-token.mjs",
     "preversion": "npm run compile && npm test",

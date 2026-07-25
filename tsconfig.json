@@ -4,5 +4,10 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  // `bridge/` is a separate npm package with its own deps and tsconfig — typecheck it with
+  // `npm run compile:bridge`. WXT's generated config includes `../**/*`, which would
+  // otherwise pull bridge/src in here and fail on deps this project doesn't install
+  // (locally it only passed because bridge/node_modules happened to exist).
+  "exclude": ["dist", "node_modules", "bridge"]
 }
