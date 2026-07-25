@@ -4,6 +4,17 @@
   <img src="./docs/screenshot.png" alt="xChat — full-screen, keyboard-first X DMs" width="50%">
 </p>
 
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/xchat-%E2%80%94-x-dms-keyboard-fi/oaejnakkgghcgpekgdoffnpobkhnmlfm">
+    <img src="https://img.shields.io/badge/Add%20to%20Chrome-Free-1a73e8?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=202124" alt="Add xChat to Chrome — free, from the Chrome Web Store" height="52">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/xchat-%E2%80%94-x-dms-keyboard-fi/oaejnakkgghcgpekgdoffnpobkhnmlfm"><img src="https://img.shields.io/chrome-web-store/v/oaejnakkgghcgpekgdoffnpobkhnmlfm?label=chrome%20web%20store&color=1a73e8" alt="Chrome Web Store version"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/grinich/xchat?color=1a73e8" alt="License"></a>
+</p>
+
 A fast, full-screen, **keyboard-first layer on top of X (Twitter) Direct Messages** — inspired
 by Superhuman and the [Inflow](https://github.com/grinich/inflow) LinkedIn client.
 
@@ -31,6 +42,12 @@ snooze, so xChat doesn't pretend to.
 > Unofficial and not affiliated with, endorsed by, or sponsored by X Corp. "X" and "Twitter"
 > are trademarks of their respective owners.
 
+## Install
+
+**[→ Add xChat to Chrome](https://chromewebstore.google.com/detail/xchat-%E2%80%94-x-dms-keyboard-fi/oaejnakkgghcgpekgdoffnpobkhnmlfm)** — one click from the Chrome Web Store, then open
+<https://x.com/messages> (or `x.com/i/chat`) and xChat activates automatically. Works in any
+Chromium browser that can install from the store (Chrome, Arc, Brave, Edge, Vivaldi).
+
 ## Develop
 
 ```bash
@@ -41,9 +58,7 @@ npm test           # unit tests (vitest)
 npm run compile    # typecheck (tsc --noEmit)
 ```
 
-## Load in Chrome (one-time)
-
-The extension can't self-install (Chrome requires a manual step), so:
+### Load unpacked (for local changes)
 
 1. `npm run build`
 2. Open `chrome://extensions`
@@ -53,6 +68,9 @@ The extension can't self-install (Chrome requires a manual step), so:
 
 To pick up code changes: `npm run build` again, then click the refresh icon on the xChat card
 in `chrome://extensions` and reload the X tab. (`npm run dev` auto-rebuilds.)
+
+If you also have the store build installed, disable it while working on the unpacked one —
+they share the same extension id, and the store copy can shadow `dist/`.
 
 ## Keyboard shortcuts
 
