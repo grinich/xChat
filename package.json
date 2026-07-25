@@ -17,7 +17,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "cws-token": "node scripts/cws-token.mjs",
+    "preversion": "npm run compile && npm test",
+    "postversion": "git push --follow-tags"
   },
   "devDependencies": {
     "@types/chrome": "^0.2.2",

@@ -1,18 +1,41 @@
 name: Release
 
-# Builds, zips, and publishes the extension whenever a version tag is pushed.
-#   git tag v0.1.0 && git push origin v0.1.0
+# Tag a version and everything else is automatic: build, test, GitHub Release, and an
+# update submitted to the Chrome Web Store for review.
+#
+#   npm version patch     # bumps package.json, commits, tags, pushes (see package.json)
+#
+# Or run manually from the Actions tab to dry-run the store credentials without releasing.
+# Setup + gotchas: docs/RELEASING.md
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only check store credentials — no upload, no submit, no release'
+        type: boolean
+        default: true
 
 permissions:
-  contents: write # needed to create the GitHub Release + upload the zip
+  contents: read # checkout; the build job escalates to write for the Release
+
+concurrency:
+  # Never let two submissions race for the same store item.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Public — it's in every store URL, and wxt.config.ts pins the matching key.
+  # A fork can override with an Actions variable.
+  CHROME_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID || 'oaejnakkgghcgpekgdoffnpobkhnmlfm' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release + upload the zip
     steps:
       - uses: actions/checkout@v4
 
@@ -25,7 +48,9 @@ jobs:
       - run: npm ci
 
       # Make the tag (e.g. v0.2.0) drive the manifest version (read from package.json).
+      # `npm version` already did this locally; this covers hand-pushed tags.
       - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
 
       - name: Typecheck
@@ -43,34 +68,89 @@ jobs:
         with:
           name: xchat-extension
           path: dist/*.zip
+          if-no-files-found: error
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.zip
           generate_release_notes: true
 
   # ---------------------------------------------------------------------------
-  # Chrome Web Store publish — enabled once store credentials exist as repo
-  # secrets. Set: CWS_EXTENSION_ID, CWS_CLIENT_ID, CWS_CLIENT_SECRET,
-  # CWS_REFRESH_TOKEN (from the Chrome Web Store API OAuth flow). Then this job
-  # uploads + submits the zip for review on each tag.
+  # Chrome Web Store submit. Needs three repo secrets — CWS_CLIENT_ID,
+  # CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN. Mint them in one shot with
+  # `node scripts/cws-token.mjs --set-secrets` (see docs/RELEASING.md).
   # ---------------------------------------------------------------------------
-  # publish-chrome:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   if: ${{ vars.PUBLISH_TO_CWS == 'true' }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 22
-  #         cache: npm
-  #     - run: npm ci
-  #     - name: Submit to Chrome Web Store
-  #       run: npx wxt submit --chrome-zip dist/*.zip
-  #       env:
-  #         CHROME_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
-  #         CHROME_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
-  #         CHROME_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
-  #         CHROME_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+  publish-chrome:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: xchat-extension
+          path: dist
+
+      # Fail with instructions rather than silently "succeeding" without submitting.
+      - name: Check store credentials are configured
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          missing=()
+          [ -n "$CHROME_CLIENT_ID" ]     || missing+=(CWS_CLIENT_ID)
+          [ -n "$CHROME_CLIENT_SECRET" ] || missing+=(CWS_CLIENT_SECRET)
+          [ -n "$CHROME_REFRESH_TOKEN" ] || missing+=(CWS_REFRESH_TOKEN)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repo secret(s): ${missing[*]}. Run 'node scripts/cws-token.mjs --set-secrets' — see docs/RELEASING.md."
+            exit 1
+          fi
+
+      # Resolve the single zip explicitly; a glob that matches nothing would otherwise be
+      # passed through literally and fail deep inside the upload.
+      - name: Locate the zip
+        run: |
+          shopt -s nullglob
+          zips=(dist/*.zip)
+          if [ ${#zips[@]} -ne 1 ]; then
+            echo "::error::expected exactly one zip in dist/, found ${#zips[@]}"
+            exit 1
+          fi
+          echo "CHROME_ZIP=${zips[0]}" >> "$GITHUB_ENV"
+          echo "Submitting ${zips[0]}"
+
+      # Uploads the new version and submits it for review (publishes once approved).
+      # On a manual dry run this only verifies auth — nothing is uploaded.
+      - name: Submit to Chrome Web Store
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: npx wxt submit ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      # Deliberately not `if: always()` — a summary claiming "submitted" after a failed
+      # submit would lie.
+      - name: Summarize
+        run: |
+          {
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "### Chrome Web Store credential check"
+              echo "Auth verified against \`$CHROME_EXTENSION_ID\` — nothing was uploaded."
+            else
+              echo "### Submitted to the Chrome Web Store"
+              echo "\`$CHROME_ZIP\` uploaded and submitted for review."
+              echo ""
+              echo "Review takes hours to a few days; the update publishes automatically on approval."
+              echo "[Listing](https://chromewebstore.google.com/detail/$CHROME_EXTENSION_ID) · [Dashboard](https://chrome.google.com/webstore/devconsole)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -41,3 +41,10 @@ attempts to decrypt.
 ## Commands
 `npm run build` → `dist/` (load unpacked; flattened via `outDirTemplate: '.'`). `npm test`, `npm run compile`.
 Full end-to-end verification requires loading the unpacked extension (manual Chrome step).
+
+## Releasing
+`npm version patch|minor|major` is the entire release — `preversion`/`postversion` hooks gate on
+tests and push the tag, and `.github/workflows/release.yml` builds, publishes a GitHub Release,
+and submits the update to the Chrome Web Store (`wxt submit`, credentials in repo secrets
+`CWS_CLIENT_ID`/`CWS_CLIENT_SECRET`/`CWS_REFRESH_TOKEN`). The **tag is the only version source**
+— never hand-edit the manifest version. Setup + failure modes: `docs/RELEASING.md`.

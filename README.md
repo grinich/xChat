@@ -72,6 +72,17 @@ in `chrome://extensions` and reload the X tab. (`npm run dev` auto-rebuilds.)
 If you also have the store build installed, disable it while working on the unpacked one —
 they share the same extension id, and the store copy can shadow `dist/`.
 
+### Releasing
+
+```bash
+npm version patch      # or minor / major
+```
+
+That's the whole release: it typechecks, tests, tags, and pushes, and CI takes it from there —
+build → GitHub Release → **update submitted to the Chrome Web Store for review**, which
+publishes to users on approval. One-time credential setup and the failure modes are in
+[docs/RELEASING.md](./docs/RELEASING.md).
+
 ## Keyboard shortcuts
 
 | Key | Action |
